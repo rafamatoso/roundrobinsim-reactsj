@@ -1,0 +1,329 @@
+<!DOCTYPE HTML>
+<!--
+	Prologue by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+	<head>
+		<title>REA - Round Robin</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<!--[if lte IE 8]><script src="assets/js/ie/html5shiv.js"></script><![endif]-->
+		<link rel="stylesheet" href="assets/css/main.css" />
+		<!--[if lte IE 8]><link rel="stylesheet" href="assets/css/ie8.css" /><![endif]-->
+		<!--[if lte IE 9]><link rel="stylesheet" href="assets/css/ie9.css" /><![endif]-->
+		<!-- SyntaxHighlighter	-->
+		<script type="text/javascript" src="scripts/shCore.js"></script>
+		<script type="text/javascript" src="scripts/shBrushJScript.js"></script>
+		<link type="text/css" rel="stylesheet" href="styles/shCoreDefault.css"/>
+		<script type="text/javascript">SyntaxHighlighter.all();</script>
+	</head>
+
+
+	</head>
+	<body>
+
+		<!-- Header -->
+			<div id="header">
+
+				<div class="top">
+
+					<!-- Logo -->
+						<div id="logo">
+							<span class="image avatar48"><img src="images/avatar.jpg" alt="" /></span>
+							<h1 id="title">Round Robin</h1>
+							<p>Uma técnica de escalonamento</p>
+						</div>
+
+					<!-- Nav -->
+						<nav id="nav">
+							<!--
+
+								Prologue's nav expects links in one of two formats:
+
+								1. Hash link (scrolls to a different section within the page)
+
+								   <li><a href="#foobar" id="foobar-link" class="icon fa-whatever-icon-you-want skel-layers-ignoreHref"><span class="label">Foobar</span></a></li>
+
+								2. Standard link (sends the user to another page/site)
+
+								   <li><a href="http://foobar.tld" id="foobar-link" class="icon fa-whatever-icon-you-want"><span class="label">Foobar</span></a></li>
+
+							-->
+							<ul>
+								<li><a href="#top" id="top-link" class="skel-layers-ignoreHref"><span class="icon fa-home">Início</span></a></li>
+								<li><a href="#whatis" id="whatis-link" class="skel-layers-ignoreHref"><span class="icon fa-question">O que é?</span></a></li>
+								<li><a href="#video" id="video-link" class="skel-layers-ignoreHref"><span class="icon fa-video-camera">Vídeo</span></a></li>
+								<li><a href="#codigo" id="codigo-link" class="skel-layers-ignoreHref"><span class="icon fa-code">Código</span></a></li>
+							</ul>
+						</nav>
+
+				</div>
+
+				<div class="bottom">
+
+					<!-- Social Icons -->
+					<ul class="icons">
+							<!--<p>Repositório Educacional Livre<br>
+							Universidade Estadual de Ponta Grossa<br>
+							Engenharia de Computação<br></p>-->
+							<!--<li><a href="#" class="icon fa-twitter"><span class="label">Twitter</span></a></li>
+							<li><a href="#" class="icon fa-facebook"><span class="label">Facebook</span></a></li>
+							<li><a href="#" class="icon fa-github"><span class="label">Github</span></a></li>
+							<li><a href="#" class="icon fa-dribbble"><span class="label">Dribbble</span></a></li>
+							<li><a href="#" class="icon fa-envelope"><span class="label">Email</span></a></li>-->
+						</ul>
+
+				</div>
+
+			</div>
+
+		<!-- Main -->
+			<div id="main">
+
+				<!-- Intro -->
+					<section id="top" class="one dark cover">
+						<div class="container">
+
+							<header>
+								<h2 class="alt"><strong>ROUND ROBIN</strong>,<br />
+								uma técnica preemptiva de escalonamento.</h2>
+								<p>A seguir, entenderemos o funcionamento do algoritmo de<br>escalonamento chamado <i>Round Robin</i>, ou <i>Escalonamento Circular</i>.</p>
+							</header>
+
+							<footer>
+								<a href="#whatis" class="button scrolly"><strong>Começar</strong></a>
+							</footer>
+
+						</div>
+					</section>
+
+				<!-- O que é? -->
+					<section id="whatis" class="two">
+						<div class="container">
+
+							<header>
+								<h2>O que é escalonamento?</h2>
+							</header>
+
+							<p align="justify">Políticas ou técnicas de escalonamento são uma série de técnicas usadas com o objetivo
+							de se obter uma melhor utilização da CPU. As políticas de escalonamento se dividem em duas
+							classes: aquelas que <u>usam preempção</u> e as que <u>não usam preempção</u>.</p>
+
+							<h3 align ="justify">> Preempção</h3>
+
+							<p align="justify"><i>Preempção</i> é a interrupção forçada de um processo, para que outro processo de maior prioridade
+							possa usar a CPU. A preempção é usada em sistemas multiprogramados para evitar que um processo monopolize
+							a CPU. A preempção é implementada através de um relógio de tempo real que interrompe a CPU a intervalos
+							de tempo regulares, a fim de que o escalonador de tarefas possa fazer uma reavaliação de prioridades e
+							escalonar outro processo. Este intervalo é a unidade básica de alocação de tempo da CPU e é denominado
+							<i><u>quantum</u></i>.</p>
+
+							<header><h2>Escalonamento circular (Round-Robin)</h2></header>
+
+							<p align="justify">É o tipo de escalonamento preemptivo mais simples e consiste em repartir uniformemente o tempo da CPU
+							entre todos os processos prontos para a execução. Os processos são organizados numa fila circular, alocando-se a cada um
+							uma fatia de tempo da CPU, igual a um número inteiro de <i>quanta</i>. Caso um processo não termine dentro de sua fatia
+							de tempo, ele é colocado no fim da fila e uma nova fatia de tempo é alocada para o processo no começo da fila, como
+							ilustrado na figura abaixo:</p>
+
+							<div align="center">
+								<img src="images/roundrobin.png" alt="" style="width: 80%; height: 80%" />
+							</div>
+                            <p align="justify">O escalonamento circular é muito simples, mas pode trazer problemas se os tempos de execução
+                            são muito discrepantes entre si. Quando existirem muitas tarefas ativas e de longa duração no sistema, as tarefas 
+                            curtas terão o seu tempo de resposta degradado, pois as tarefas longas reciclarão continuamente na fila circular, 
+                            compartilhando de maneira equitativa a CPU com tarefas curtas.</p>
+							<div>
+							<div class="pre-spoiler" align="right">
+								<input id="xs" value="Fonte" style="margin-left: 50px; padding: 0px; width: 80px;
+								" onclick="if (this.parentNode.parentNode.getElementsByTagName('div')[1].getElementsByTagName('div')[0].style.display != '')
+								{ this.parentNode.parentNode.getElementsByTagName('div')[1].getElementsByTagName('div')[0].style.display =
+								'';this.innerText = ''; this.value = 'Ocultar'; } else {
+								this.parentNode.parentNode.getElementsByTagName('div')[1].getElementsByTagName('div')[0].style.display = 'none';
+								this.value = 'Fonte';}" type="button"> </div>
+							<div>
+								<div class="spoiler" style="display: none; font-size: medium" align="right" >
+									<b>FONTE: </b>"Introdução aos sistemas operacionais" / José Renato Soares Nunes, 1990.
+								</div>
+							</div>
+							</div>
+							<!-- <div class="row">
+								<div class="4u 12u$(mobile)">
+									<article class="item">
+										<a href="#" class="image fit"><img src="images/pic02.jpg" alt="" /></a>
+										<header>
+											<h3>Ipsum Feugiat</h3>
+										</header>
+									</article>
+									<article class="item">
+										<a href="#" class="image fit"><img src="images/pic03.jpg" alt="" /></a>
+										<header>
+											<h3>Rhoncus Semper</h3>
+										</header>
+									</article>
+								</div>
+								<div class="4u 12u$(mobile)">
+									<article class="item">
+										<a href="#" class="image fit"><img src="images/pic04.jpg" alt="" /></a>
+										<header>
+											<h3>Magna Nullam</h3>
+										</header>
+									</article>
+									<article class="item">
+										<a href="#" class="image fit"><img src="images/pic05.jpg" alt="" /></a>
+										<header>
+											<h3>Natoque Vitae</h3>
+										</header>
+									</article>
+								</div>
+								<div class="4u$ 12u$(mobile)">
+									<article class="item">
+										<a href="#" class="image fit"><img src="images/pic06.jpg" alt="" /></a>
+										<header>
+											<h3>Dolor Penatibus</h3>
+										</header>
+									</article>
+									<article class="item">
+										<a href="#" class="image fit"><img src="images/pic07.jpg" alt="" /></a>
+										<header>
+											<h3>Orci Convallis</h3>
+										</header>
+									</article>
+								</div>
+							</div> -->
+
+						</div>
+					</section>
+
+				<!-- Vídeo -->
+					<section id="video" class="three">
+						<div class="container">
+
+								<h2>Vídeo</h2>
+
+							<div class="video-container">
+								<iframe width="854" height="480" src="https://www.youtube.com/embed/v8FPH2kqSdc" frameborder="0" allowfullscreen></iframe>
+							</div>
+
+                            <p align="justify">O vídeo exemplifica o funcionamendo do <a href="#codigo" id="codigo-link2" class="skel-layers-ignoreHref">código (em linguagem C) encontrado abaixo</a>. Para maior entendimento, pode-se baixar o arquivo para que ele seja executado na sua própria máquina.</p>
+
+						</div>
+					</section>
+
+				<!-- Código -->
+                
+					<section id="codigo" class="four" >
+						<div class="container" >
+
+							<header>
+								<h2>Código</h2>
+							</header>
+                                
+                            <p align="justify">O código em linguagem C abaixo associa o escalonamento circular à situação de uma fila em um banco.
+                                O caixa é a CPU, e as pessoas na fila são os processos. Cada processo precisa "pagar" um certo número de "contas" para terminar sua execução, ou seja, usar a CPU por um determinado tempo. Porém, o caixa (CPU) só permite que cada pessoa pague X contas de cada vez. Esse valor X é chamado de Quantum. Se o processo terminar sua execução, ou seja, todas as contas forem pagas, a pessoa sai da fila, caso contrário, volta ao final da fila e espera sua vez novamente. O <a href="#video" id="video-link2" class="skel-layers-ignoreHref">vídeo acima</a> também exemplifica o funcionamento do código a seguir.</p>
+                            
+							<script type="syntaxhighlighter" class="brush: js"><![CDATA[
+							//O código foi escrito baseando-se no exemplo mostrado no vídeo para uma compreensão facilitada
+							//Pessoas pagando contas em um caixa que só permite certo numero de contas
+							#include <stdlib.h> 
+							#include <stdio.h>  
+							#define tam 30 //número máximo de pessoas
+
+							int pessoas[tam];           //Fila de pessoas
+							int NumEscolhidoPessoas;
+							int quantum;                //Numero de contas pra pagar no caixa
+
+							void contas(){       //Para que o usuario possa testar com diferentes quantidades de contas
+								int numero;
+								int i;
+								for (i=1; i<=NumEscolhidoPessoas; i++){
+									printf("\nDigite o numero de contas a pagar da pessoa %d:", i);
+									scanf("%d", &numero);               //Leitura de valor inserido pelo usuario
+									pessoas[i]= numero;                 //cada pessoa recebe o valor informado
+								}
+							}
+
+							void fila(){
+								int contadorFila=NumEscolhidoPessoas;            //contagem de pessoas que estão na fila
+								int frenteFila = 1;                 //Primeira posição da fila
+								while(contadorFila !=0){
+									while(pessoas[frenteFila] <= 0){ //Tira pessoas que não tem contas da primeira posição
+										frenteFila++;
+										if(frenteFila>= NumEscolhidoPessoas) //Faz a rotação
+											frenteFila=0;
+									}
+									printf("\n\nA pessoa %d vai para o caixa com %d contas", frenteFila , pessoas[frenteFila]);
+									printf("\nPaga ate %d contas", quantum);
+									pessoas[frenteFila] = pessoas[frenteFila] - quantum;        //Pagamento de quantum contas
+									if( pessoas[frenteFila]<=0){
+										printf("\nE sai da fila.\n");
+										contadorFila--;
+									}
+									else{
+										printf("\nE vai pro final da fila com %d contas restantes.\n", pessoas[frenteFila]);
+									}
+									frenteFila++;                               //Atualiza primeira posição
+										if(frenteFila>NumEscolhidoPessoas)    //Faz a rotação
+											frenteFila=0;
+									system("PAUSE");
+								}
+							}
+
+							main(){
+                                printf("::::::: Programa exemplo sobre round-robin :::::::");
+                                printf("\nDigite o numero maximo de contas a pagar no caixa (quantum): ");
+                                scanf("%d", &quantum);
+                                printf("\nDigite o numero de pessoas na fila: ");
+                                scanf("%d", &NumEscolhidoPessoas);
+                                contas();
+                                fila();
+                                printf("\n\n::::::::: Fim ::::::::::\n");
+                                getch();
+							} 
+							]]></script>
+
+							<footer>
+								<a href="code/round.c" download="roundRobin.c" class="button"><strong>Baixar código</strong></a>
+							</footer>
+
+							<!--<form method="post" action="#">
+								<div class="row">
+									<div class="6u 12u$(mobile)"><input type="text" name="name" placeholder="Name" /></div>
+									<div class="6u$ 12u$(mobile)"><input type="text" name="email" placeholder="Email" /></div>
+									<div class="12u$">
+										<textarea name="message" placeholder="Message"></textarea>
+									</div>
+									<div class="12u$">
+										<input type="submit" value="Send Message" />
+									</div>
+								</div>
+							</form>-->
+
+						</div>
+					</section>
+
+			</div>
+
+		<!-- Footer -->
+			<div id="footer">
+
+				<!-- Copyright -->
+					<ul class="copyright">
+						<li>&copy;Desenvolvido por Juliano & Gabriela. All rights reserved.</li><li>Website template: <a href="http://html5up.net">HTML5 UP</a></li>
+					</ul>
+
+			</div>
+
+		<!-- Scripts -->
+			<script src="assets/js/jquery.min.js"></script>
+			<script src="assets/js/jquery.scrolly.min.js"></script>
+			<script src="assets/js/jquery.scrollzer.min.js"></script>
+			<script src="assets/js/skel.min.js"></script>
+			<script src="assets/js/util.js"></script>
+			<!--[if lte IE 8]><script src="assets/js/ie/respond.min.js"></script><![endif]-->
+			<script src="assets/js/main.js"></script>
+
+	</body>
+</html>
