@@ -1,15 +1,15 @@
 import React, { Component } from 'react';
 import Process from './Process';
 import Attendance from './Attendance';
-import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
 import PauseIcon from '@material-ui/icons/Pause';
 import AutorenewIcon from '@material-ui/icons/Autorenew';
 
 let count = 0;
-const MAX_RANDOM = 8;
 let attendanceInterval = null;
-let queueProcessInterval = null;
+let queueInterval = null;
+let createProcessInterval = null;
+const MAX_RANDOM = 5;
 
 export default class RoundRobin extends Component {
   constructor(props) {
@@ -19,12 +19,13 @@ export default class RoundRobin extends Component {
 
   _initialState = () => {
     return {
-      paused: true,
+      paused: true, // Estado geral do sistema: pausado ou não
       queueProcess: [], // Fila de processos em espera de atendimento
-      attendance: [], // Fila de atendimento
-      numberOfAttendances: 4,
+      attendance: [], // Lista de atendimento
+      finalizedProcess: [], // Lista de processos finalizados
+      numberOfAttendances: 4, // Número de atendentes (Cpu)
       quantumTime: 0, // variável para auxiliar no gerenciamento do quantum
-      quantumMaxTime: 10, // tempo máximo do quantum de processamento
+      quantumMaxTime: 5, // tempo máximo do quantum de processamento
       queueProcessLog: '',
       queueProcessLength: '',
       btnText: 'Run'
@@ -33,23 +34,25 @@ export default class RoundRobin extends Component {
 
   /* 1) Função que cria novos processos e gerencia a entrada na fila de Processos */
   _managerQueueProccess = () => {
-    queueProcessInterval = setInterval(() => {
+    createProcessInterval = setInterval(() => {
       let { queueProcess, paused } = this.state;
       // Verifica o status do sistema
       if (!paused) {
         // Instancia novos processos
         let process = {
-          id: '',
-          timeCost: ''
+          id: null,
+          quantumCost: null,
+          timeInQueue: null
         };
         // Random Processos a adicionar na Fila de Processos
         let random = Math.floor(Math.random() * MAX_RANDOM) + 1;
         // Adiciona os novos Processos
         for (let i = 0; i < random; ++i) {
-          count += 1;
-          process.id = count;
-          process.timeCost = Math.floor(Math.random() * MAX_RANDOM) + 1;
-          console.log('id: ' + process.id, 'cost: ' + process.timeCost);
+          process = new Object(); // A cada iteração, um novo objeto Process será instanciado
+          count += 1; // Não pertence ao escopo da classe, será acessível por todos os objetos
+          process.id = count; //
+          process.quantumCost = Math.floor(Math.random() * MAX_RANDOM) + 1;
+          process.timeInQueue = 0;
           queueProcess.push(process);
         }
         // Seta o estado
@@ -62,7 +65,22 @@ export default class RoundRobin extends Component {
     }, 5000);
   };
 
-  /* 2) Função que gerencia os processos que serão atendidos */
+  /* 2) Função que "marca" o tempo na fila de espera de cada processo */
+  _timeInQueueCounter = () => {
+    let incTime = () => {
+      let { paused, queueProcess } = this.state;
+      if (!paused && queueProcess.length >= 1) {
+        // Para cada objeto no array queueProcess será iterado um valor que representa o tempo do processo em espera na fila
+        queueProcess.forEach(element => {
+          element.timeInQueue += 1;
+          //console.log(element.timeInQueue);
+        });
+      }
+    };
+    queueInterval = setInterval(incTime, 1000);
+  };
+
+  /* 3) Função que gerencia os processos que serão atendidos */
   _managerAttendance = () => {
     let { queueProcess, paused, numberOfAttendances } = this.state;
     // Verifica se existe pelo menos 1 Processo na Fila de Processos
@@ -87,7 +105,7 @@ export default class RoundRobin extends Component {
     }
   };
 
-  /* 3) Função que gerencia o atendimento de cada processo */
+  /* 4) Função que gerencia o atendimento da CPU */
   _startAttendance = () => {
     let quantumTime = this.state.quantumMaxTime;
     let incTime = () => {
@@ -111,7 +129,7 @@ export default class RoundRobin extends Component {
   };
 
   _getQueueProcessLengthText = n => {
-    let proccess = n === 1 ? 'Process' : 'Processs';
+    let proccess = n === 1 ? 'Processo' : 'Processos';
     return (
       'Total de ' +
       this.state.queueProcess.length +
@@ -121,6 +139,8 @@ export default class RoundRobin extends Component {
     );
   };
 
+  /* As funções handler servem para capturar algum tipo de informação executada pelo usuário
+  exemplo: clique num botão, escrita num formulário e etc...*/
   _handlerBtnOnClick = () => {
     let paused = this.state.paused;
     let btnText = paused ? 'Pause System' : this._initialState().btnText;
@@ -153,27 +173,45 @@ export default class RoundRobin extends Component {
     }
   };
 
+  /* componentDidMount() É invocado imediatamente após um componente ser montado (inserido na árvore). 
+  Inicializações que exijam nós do DOM devem vir aqui. 
+  Se precisar carregar data de um endpoint remoto, este é um bom lugar para instanciar sua requisição.*/
   componentDidMount() {
     this._managerQueueProccess();
     this._startAttendance();
+    this._timeInQueueCounter();
   }
 
+  /* componentWillUnmount() é invocado imediatamente antes que um componente seja desmontado e destruído.
+  Qualquer limpeza necessária deve ser realizada neste método, como invalidar timers, cancelar requisições de rede, 
+  ou limpar qualquer subscrição que foi criada no componentDidMount(). */
   componentWillUnmount() {
     clearInterval(attendanceInterval);
-    clearInterval(queueProcessInterval);
+    clearInterval(createProcessInterval);
+    clearInterval(queueInterval);
   }
 
+  /* Método de renderização da aplicação */
   render() {
     return (
       <div className="container" style={{ marginTop: '10px' }}>
-        <div className="d-inline-block" style={{ marginLeft: '5px' }}>
+        <div className="d-inline-block" style={{ marginLeft: '0px' }}>
           <h3>UniFBV - RR Simulator</h3>
           <h4>
+            Status:
             {this.state.paused ? (
-              <span className="badge badge-warning">Paused!!!</span>
+              <span
+                className="badge badge-warning"
+                style={{ marginLeft: '10px' }}
+              >
+                Paused!
+              </span>
             ) : (
-              <span className="badge badge-success">
-                System in Attendance ...
+              <span
+                className="badge badge-success"
+                style={{ marginLeft: '10px' }}
+              >
+                In Attendance...
               </span>
             )}
           </h4>
@@ -197,13 +235,6 @@ export default class RoundRobin extends Component {
           >
             <AutorenewIcon /> Run Again
           </button>
-
-          <button
-            className="btn btn-md btn-success"
-            style={{ marginRight: '5px', marginTop: '3px' }}
-          >
-            <CheckCircleIcon /> Round Robin
-          </button>
         </div>
 
         <hr />
@@ -214,7 +245,7 @@ export default class RoundRobin extends Component {
             <div className="">
               <h4>Processo(s) em Atendimento:</h4>
               {this.state.attendance.map((v, k) => (
-                <Attendance key={k} text={'P' + v.id} value={v.timeCost} />
+                <Attendance key={k} text={'P' + v.id} value={v.quantumCost} />
               ))}
               <p id="numero_atendentes" className="form-text text-muted">
                 {this.state.quantumTime} segundos para iniciar o próximo
@@ -232,9 +263,11 @@ export default class RoundRobin extends Component {
                 id="numero_atendentes"
                 onChange={this._handlerInputOnChange}
                 value={this.state.numberOfAttendances}
+                min="1"
+                max="8"
               />
               <small id="numero_atendentes" className="form-text text-muted">
-                Define a Quantidade de Atendentes no sistema.
+                Define a Quantidade de CPU's no sistema (min: 1, máx: 8).
               </small>
             </div>
 
@@ -263,13 +296,13 @@ export default class RoundRobin extends Component {
               top="0%"
               left={'0%'}
               text={'P' + v.id}
-              value={v.timeCost}
+              value={v.quantumCost}
             />
           ))}
           <h4 className="text-primary">{this.state.queueProcessLength}</h4>
         </div>
 
-        <p className="float-md-right">Round Robin Simulation (RRS).</p>
+        <p className="float-md-right">Round Robin Simulator (RRS).</p>
       </div>
     );
   }
