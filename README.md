@@ -6,7 +6,14 @@
 
 #### Professor(a): [Fábio Santos](https://github.com/minhas-aulas/) ; LinkedIn: [clique aqui](https://www.linkedin.com/in/f%C3%A1bio-santos-5a406831/)
 
-##### Grupo: Rafael Matoso, Gregório Siqueira, Ítalo David, Guttemberg Rossiny, Jamerson Souza, Filipe
+**Alunos:**</br>
+
+1. Rafael Matoso (172081854)</br>
+1. Gregório Siqueira (181080719)</br>
+1. Ítalo David (171081857)</br>
+1. Guttemberg Rossiny (171080904)</br>
+1. Jamerson Souza (171081857)</br>
+1. Filipe Falcão (182081357)</br>
 
 ---
 

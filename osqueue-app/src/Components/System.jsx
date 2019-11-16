@@ -1,17 +1,17 @@
-/*import React, { Component } from "react";
-import RoundRobin from './RoundRobin';
+import React, { Component } from "react";
+import RoundRobin from "./RoundRobin";
 
 export default class System extends Component {
-    constructor(props) {
-        super(props);
-        this.state = { roundRobin: false };
-    }
+  constructor(props) {
+    super(props);
+    this.state = { roundRobin: true };
+  }
 
-    roundRobinActive = () => {
-        this.setState({ roundRobin: true });
-    };
+  roundRobinActive = () => {
+    this.setState({ roundRobin: true });
+  };
 
-    render() {
-        return <RoundRobin roundRobinActive={ () => this.roundRobinActive } />;
-    }
-}*/
+  render() {
+    return <RoundRobin roundRobinActive={() => this.roundRobinActive} />;
+  }
+}
