@@ -4,12 +4,14 @@ import Attendance from './Attendance';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
 import PauseIcon from '@material-ui/icons/Pause';
 import AutorenewIcon from '@material-ui/icons/Autorenew';
+import Badge from '@material-ui/core/Badge';
+import Button from '@material-ui/core/Button';
 
 let count = 0;
 let attendanceInterval = null;
 let queueInterval = null;
 let createProcessInterval = null;
-const MAX_RANDOM = 5;
+const MAX_RANDOM = 8;
 
 export default class RoundRobin extends Component {
   constructor(props) {
@@ -28,6 +30,7 @@ export default class RoundRobin extends Component {
       quantumMaxTime: 5, // tempo máximo do quantum de processamento
       queueProcessLog: '',
       queueProcessLength: '',
+      queueFinalizedLog: '',
       btnText: 'Run'
     };
   };
@@ -38,11 +41,12 @@ export default class RoundRobin extends Component {
       let { queueProcess, paused } = this.state;
       // Verifica o status do sistema
       if (!paused) {
-        // Instancia novos processos
+        // Define o escopo do objeto
         let process = {
-          id: null,
-          quantumCost: null,
-          timeInQueue: null
+          id: null, // Identificação do processo
+          quantumCost: null, // Custo em Quantum de cada processo (absoluto)
+          quantumCostAux: null, // Atributo que será usado no cálculo do atendimento (variável, min: 0)
+          timeInQueue: 0 // Tempo em fila de espera
         };
         // Random Processos a adicionar na Fila de Processos
         let random = Math.floor(Math.random() * MAX_RANDOM) + 1;
@@ -52,8 +56,14 @@ export default class RoundRobin extends Component {
           count += 1; // Não pertence ao escopo da classe, será acessível por todos os objetos
           process.id = count; //
           process.quantumCost = Math.floor(Math.random() * MAX_RANDOM) + 1;
+          process.quantumCostAux = process.quantumCost;
           process.timeInQueue = 0;
           queueProcess.push(process);
+          /* Após os processos serem adicionados na fila de espera, a fila é organizada em ordem decrescente
+            do custo de cada processo */
+          if (queueProcess.length >= 2) {
+            queueProcess.sort(this._compare);
+          }
         }
         // Seta o estado
         this.setState({
@@ -65,12 +75,23 @@ export default class RoundRobin extends Component {
     }, 5000);
   };
 
-  /* 2) Função que "marca" o tempo na fila de espera de cada processo */
+  /* 1.1) Método criado para auxiliar na organização da fila (comparador). O custo de quantum é o atributo a ser comparado. */
+  _compare(a, b) {
+    return (
+      (a.quantumCostAux < b.quantumCostAux
+        ? -1
+        : a.quantumCostAux > b.quantumCostAux
+        ? 1
+        : 0) * -1
+    );
+  }
+
+  /* 2) Função que "marca" o tempo de cada processo na fila de espera */
   _timeInQueueCounter = () => {
     let incTime = () => {
       let { paused, queueProcess } = this.state;
       if (!paused && queueProcess.length >= 1) {
-        // Para cada objeto no array queueProcess será iterado um valor que representa o tempo do processo em espera na fila
+        // Para cada objeto no array queueProcess será iterado um valor que representa o tempo do processo sempre que estiver na fila de espera
         queueProcess.forEach(element => {
           element.timeInQueue += 1;
           //console.log(element.timeInQueue);
@@ -107,18 +128,53 @@ export default class RoundRobin extends Component {
 
   /* 4) Função que gerencia o atendimento da CPU */
   _startAttendance = () => {
+    // Criada uma variável chamada quantumTime que auxiliará na contagem do quantum da CPU
     let quantumTime = this.state.quantumMaxTime;
+    // Função criada para iterar o quantum de cada processo. Seu escopo será executado se o sistema estiver ativo
     let incTime = () => {
-      let { paused } = this.state;
+      let {
+        paused,
+        queueProcess,
+        attendance,
+        finalizedProcess,
+        numberOfAttendances
+      } = this.state;
       if (!paused) {
+        /* Último "estado" do sistema de atendimento. A variável quantumTime começará com 0 e logo quando o primeiro
+          atendimento é realizado, receberá o valor de quantumMaxTime, sendo iterada até chegar a 0 novamente */
         if (quantumTime === 0) {
           this._managerAttendance();
           quantumTime = this.state.quantumMaxTime;
+          /* Bloco que gerencia a devolução do processo para a fila de espera ou inclusão na lista de finalizados */
+          attendance.forEach(element => {
+            element.quantumCostAux -= 1;
+            if (element.quantumCostAux <= 0) {
+              element.quantumCostAux = 0;
+              finalizedProcess.push(element);
+            } else {
+              queueProcess.push(element);
+            }
+            this.setState({
+              queueProcessLength: this._getQueueProcessLengthText(),
+              queueFinalizedLog: this._getQueueFinalizedLength()
+            });
+          });
+          /* Limpa o array de Atendimento da CPU */
+          attendance.splice(0, numberOfAttendances);
+        }
+        /* Bloco responsável pela diminuição do custo de quantum (em segundos) de cada processo em atendimento */
+        if (attendance.length >= 1) {
+          attendance.forEach(element => {
+            if (element.quantumCostAux > 0) {
+              element.quantumCostAux -= 1;
+            }
+          });
         }
         this.setState({ quantumTime: quantumTime }, () => {});
         quantumTime -= 1;
       }
     };
+    /* Temporizador do Atendimento: 1 segundo */
     attendanceInterval = setInterval(incTime, 1000);
   };
 
@@ -139,8 +195,22 @@ export default class RoundRobin extends Component {
     );
   };
 
-  /* As funções handler servem para capturar algum tipo de informação executada pelo usuário
-  exemplo: clique num botão, escrita num formulário e etc...*/
+  _getQueueFinalizedLength = n => {
+    let proccess = n === 1 ? 'Processo' : 'Processos';
+    let length =
+      this.state.finalizedProcess.length === 1 ? 'Finalizado' : 'Finalizados';
+    return (
+      'Total de ' +
+      this.state.finalizedProcess.length +
+      ' ' +
+      proccess +
+      ' ' +
+      length
+    );
+  };
+
+  /* As funções handler servem para capturar algum tipo de informação de input pelo usuário
+  exemplo: click de um botão, escrita num formulário e etc...*/
   _handlerBtnOnClick = () => {
     let paused = this.state.paused;
     let btnText = paused ? 'Pause System' : this._initialState().btnText;
@@ -245,7 +315,11 @@ export default class RoundRobin extends Component {
             <div className="">
               <h4>Processo(s) em Atendimento:</h4>
               {this.state.attendance.map((v, k) => (
-                <Attendance key={k} text={'P' + v.id} value={v.quantumCost} />
+                <Attendance
+                  key={k}
+                  text={'P' + v.id}
+                  value={v.quantumCostAux}
+                />
               ))}
               <p id="numero_atendentes" className="form-text text-muted">
                 {this.state.quantumTime} segundos para iniciar o próximo
@@ -267,7 +341,7 @@ export default class RoundRobin extends Component {
                 max="8"
               />
               <small id="numero_atendentes" className="form-text text-muted">
-                Define a Quantidade de CPU's no sistema (min: 1, máx: 8).
+                Define a Quantidade de CPU's no sistema (Min: 1, Máx: 8).
               </small>
             </div>
 
@@ -287,19 +361,58 @@ export default class RoundRobin extends Component {
           </div>
         </div>
 
+        <hr></hr>
+
         {/* Processos na fila de espera por Atendimento */}
-        <div className="jumbotron">
-          <h4>{this.state.queueProcessLog}</h4>
+        <div
+          className="jumbotron"
+          style={{ paddingTop: '20px', paddingBottom: '16px' }}
+        >
+          <h5>{this.state.queueProcessLog}</h5>
           {this.state.queueProcess.map((v, k) => (
             <Process
               key={k}
               top="0%"
               left={'0%'}
               text={'P' + v.id}
-              value={v.quantumCost}
+              value={v.quantumCostAux}
             />
           ))}
           <h4 className="text-primary">{this.state.queueProcessLength}</h4>
+        </div>
+
+        {/* Processos Finalizados */}
+        <div
+          className="jumbotron"
+          style={{ paddingTop: '20px', paddingBottom: '16px' }}
+        >
+          {this.state.finalizedProcess.length >= 1 ? (
+            <h5>Finalizados:</h5>
+          ) : (
+            <></>
+          )}
+          {this.state.finalizedProcess.map((v, k) => (
+            <div
+              className="d-inline-block"
+              style={{ marginLeft: '5px', marginBottom: '5px' }}
+              key={k}
+            >
+              <Badge color="secondary" badgeContent={v.quantumCostAux}>
+                <Button
+                  size="small"
+                  variant="contained"
+                  style={{ margin: '10px', padding: '0px' }}
+                >
+                  {'P' + v.id}
+                </Button>
+              </Badge>
+            </div>
+          ))}
+          {this.state.finalizedProcess.length >= 1 ? (
+            <h4 className="text-primary">{this.state.queueFinalizedLog}</h4>
+          ) : (
+            <h4 />
+          )}
         </div>
 
         <p className="float-md-right">Round Robin Simulator (RRS).</p>

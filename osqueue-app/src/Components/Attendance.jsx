@@ -25,7 +25,7 @@ export default function Attendance(props) {
         badgeContent={props.value}
         className={style.margin}
       >
-        <Button size="small" variant="contained">
+        <Button size="small" variant="contained" style={{ padding: '0px' }}>
           {props.text}
         </Button>
       </Badge>
