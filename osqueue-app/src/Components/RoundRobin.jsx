@@ -26,8 +26,9 @@ export default class RoundRobin extends Component {
       attendance: [], // Lista de atendimento
       finalizedProcess: [], // Lista de processos finalizados
       numberOfAttendances: 4, // Número de atendentes (Cpu)
-      quantumTime: 0, // variável para auxiliar no gerenciamento do quantum
-      quantumMaxTime: 5, // tempo máximo do quantum de processamento
+      quantumTime: 0, // Variável para auxiliar no gerenciamento do quantum
+      quantumMaxTime: 5, // Tempo máximo do quantum de processamento
+      systemTime: 0, // Tempo de Sistema
       queueProcessLog: '',
       queueProcessLength: '',
       queueFinalizedLog: '',
@@ -41,18 +42,11 @@ export default class RoundRobin extends Component {
       let { queueProcess, paused } = this.state;
       // Verifica o status do sistema
       if (!paused) {
-        // Define o escopo do objeto
-        let process = {
-          id: null, // Identificação do processo
-          quantumCost: null, // Custo em Quantum de cada processo (absoluto)
-          quantumCostAux: null, // Atributo que será usado no cálculo do atendimento (variável, min: 0)
-          timeInQueue: 0 // Tempo em fila de espera
-        };
         // Random Processos a adicionar na Fila de Processos
         let random = Math.floor(Math.random() * MAX_RANDOM) + 1;
         // Adiciona os novos Processos
         for (let i = 0; i < random; ++i) {
-          process = new Object(); // A cada iteração, um novo objeto Process será instanciado
+          const process = {}; // A cada iteração, um novo objeto Process será instanciado
           count += 1; // Não pertence ao escopo da classe, será acessível por todos os objetos
           process.id = count; //
           process.quantumCost = Math.floor(Math.random() * MAX_RANDOM) + 1;
@@ -86,15 +80,18 @@ export default class RoundRobin extends Component {
     );
   }
 
-  /* 2) Função que "marca" o tempo de cada processo na fila de espera */
-  _timeInQueueCounter = () => {
+  /* 2) Função que "marca" os tempos: 1) Sistema, 2) Tempo de cada processo na fila de espera */
+  _timeCounter = () => {
     let incTime = () => {
-      let { paused, queueProcess } = this.state;
+      let { paused, queueProcess, systemTime } = this.state;
+      if (!paused) {
+        systemTime += 1;
+        this.setState({ systemTime: systemTime });
+      }
       if (!paused && queueProcess.length >= 1) {
         // Para cada objeto no array queueProcess será iterado um valor que representa o tempo do processo sempre que estiver na fila de espera
         queueProcess.forEach(element => {
           element.timeInQueue += 1;
-          //console.log(element.timeInQueue);
         });
       }
     };
@@ -140,8 +137,8 @@ export default class RoundRobin extends Component {
         numberOfAttendances
       } = this.state;
       if (!paused) {
-        /* Último "estado" do sistema de atendimento. A variável quantumTime começará com 0 e logo quando o primeiro
-          atendimento é realizado, receberá o valor de quantumMaxTime, sendo iterada até chegar a 0 novamente */
+        /* Último "estado" do sistema de atendimento. A variável quantumTime começará com 0, e a cada atendimento realizado, 
+        receberá o valor de quantumMaxTime, sendo iterada até chegar a 0 novamente */
         if (quantumTime === 0) {
           this._managerAttendance();
           quantumTime = this.state.quantumMaxTime;
@@ -151,6 +148,7 @@ export default class RoundRobin extends Component {
             if (element.quantumCostAux <= 0) {
               element.quantumCostAux = 0;
               finalizedProcess.push(element);
+              console.log(finalizedProcess);
             } else {
               queueProcess.push(element);
             }
@@ -249,7 +247,7 @@ export default class RoundRobin extends Component {
   componentDidMount() {
     this._managerQueueProccess();
     this._startAttendance();
-    this._timeInQueueCounter();
+    this._timeCounter();
   }
 
   /* componentWillUnmount() é invocado imediatamente antes que um componente seja desmontado e destruído.
@@ -266,7 +264,7 @@ export default class RoundRobin extends Component {
     return (
       <div className="container" style={{ marginTop: '10px' }}>
         <div className="d-inline-block" style={{ marginLeft: '0px' }}>
-          <h3>UniFBV - RR Simulator</h3>
+          <h3>UniFBV - Round Robin Simulator</h3>
           <h4>
             Status:
             {this.state.paused ? (
@@ -285,6 +283,7 @@ export default class RoundRobin extends Component {
               </span>
             )}
           </h4>
+          <h5>Tempo de Sistema: {this.state.systemTime} seg</h5>
         </div>
 
         {/* Botões */}
@@ -303,7 +302,7 @@ export default class RoundRobin extends Component {
             onClick={this._handlerRestartOnClick}
             style={{ marginRight: '5px', marginTop: '3px' }}
           >
-            <AutorenewIcon /> Run Again
+            <AutorenewIcon /> Refresh System
           </button>
         </div>
 
@@ -415,7 +414,12 @@ export default class RoundRobin extends Component {
           )}
         </div>
 
-        <p className="float-md-right">Round Robin Simulator (RRS).</p>
+        <h5 className="float-md-right">Round Robin Simulator (RRS).</h5>
+
+        {/* Renderização das Métricas */}
+        <div className="d-inline-block" style={{ marginLeft: '0px' }}>
+          <p></p>
+        </div>
       </div>
     );
   }
