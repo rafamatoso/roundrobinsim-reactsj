@@ -29,6 +29,9 @@ export default class RoundRobin extends Component {
       quantumTime: 0, // Variável para auxiliar no gerenciamento do quantum
       quantumMaxTime: 5, // Tempo máximo do quantum de processamento
       systemTime: 0, // Tempo de Sistema
+      averageTimeQueue: 0,
+      sumQuantumCost: 0,
+      averageQuantumCost: 0,
       queueProcessLog: '',
       queueProcessLength: '',
       queueFinalizedLog: '',
@@ -134,10 +137,12 @@ export default class RoundRobin extends Component {
         queueProcess,
         attendance,
         finalizedProcess,
-        numberOfAttendances
+        numberOfAttendances,
+        sumQuantumCost,
+        averageQuantumCost
       } = this.state;
       if (!paused) {
-        /* Último "estado" do sistema de atendimento. A variável quantumTime começará com 0, e a cada atendimento realizado, 
+        /* Último "estado" do sistema de atendimento. A variável quantumTime começará com 0, e quando o atendimento é realizado, 
         receberá o valor de quantumMaxTime, sendo iterada até chegar a 0 novamente */
         if (quantumTime === 0) {
           this._managerAttendance();
@@ -148,13 +153,16 @@ export default class RoundRobin extends Component {
             if (element.quantumCostAux <= 0) {
               element.quantumCostAux = 0;
               finalizedProcess.push(element);
-              console.log(finalizedProcess);
+              sumQuantumCost += element.quantumCost;
+              averageQuantumCost = sumQuantumCost / finalizedProcess.length;
             } else {
               queueProcess.push(element);
             }
             this.setState({
               queueProcessLength: this._getQueueProcessLengthText(),
-              queueFinalizedLog: this._getQueueFinalizedLength()
+              queueFinalizedLog: this._getQueueFinalizedLength(),
+              sumQuantumCost: sumQuantumCost,
+              averageQuantumCost: averageQuantumCost
             });
           });
           /* Limpa o array de Atendimento da CPU */
@@ -262,163 +270,185 @@ export default class RoundRobin extends Component {
   /* Método de renderização da aplicação */
   render() {
     return (
-      <div className="container" style={{ marginTop: '10px' }}>
-        <div className="d-inline-block" style={{ marginLeft: '0px' }}>
-          <h3>UniFBV - Round Robin Simulator</h3>
-          <h4>
-            Status:
-            {this.state.paused ? (
-              <span
-                className="badge badge-warning"
-                style={{ marginLeft: '10px' }}
-              >
-                Paused!
-              </span>
-            ) : (
-              <span
-                className="badge badge-success"
-                style={{ marginLeft: '10px' }}
-              >
-                In Attendance...
-              </span>
-            )}
-          </h4>
-          <h5>Tempo de Sistema: {this.state.systemTime} seg</h5>
-        </div>
-
-        {/* Botões */}
-        <div className="float-md-right">
-          <button
-            className="btn btn-md btn-primary"
-            onClick={this._handlerBtnOnClick}
-            style={{ marginRight: '5px', marginTop: '3px' }}
-          >
-            {this.state.paused ? <PlayArrowIcon /> : <PauseIcon />}
-            {this.state.btnText}
-          </button>
-
-          <button
-            className="btn btn-md btn-danger"
-            onClick={this._handlerRestartOnClick}
-            style={{ marginRight: '5px', marginTop: '3px' }}
-          >
-            <AutorenewIcon /> Refresh System
-          </button>
-        </div>
-
-        <hr />
-
-        <div className="row">
-          {/* Processos em Atendimento */}
-          <div className="col-md-7">
-            <div className="">
-              <h4>Processo(s) em Atendimento:</h4>
-              {this.state.attendance.map((v, k) => (
-                <Attendance
-                  key={k}
-                  text={'P' + v.id}
-                  value={v.quantumCostAux}
-                />
-              ))}
-              <p id="numero_atendentes" className="form-text text-muted">
-                {this.state.quantumTime} segundos para iniciar o próximo
-                Atendimento.
-              </p>
-            </div>
-          </div>
-
-          {/* Configuracoes */}
-          <div className="col-md-5">
-            <div className="form-group">
-              <input
-                type="number"
-                className="form-control"
-                id="numero_atendentes"
-                onChange={this._handlerInputOnChange}
-                value={this.state.numberOfAttendances}
-                min="1"
-                max="8"
-              />
-              <small id="numero_atendentes" className="form-text text-muted">
-                Define a Quantidade de CPU's no sistema (Min: 1, Máx: 8).
-              </small>
-            </div>
-
-            <div className="form-group">
-              <input
-                type="number"
-                className="form-control"
-                id="time_max"
-                onChange={this._handlerInputquantumMaxTimeOnChange}
-                value={this.state.quantumMaxTime}
-                min="1"
-              />
-              <small id="time_max" className="form-text text-muted">
-                Define o Quantum de Atendimento em segundos.
-              </small>
-            </div>
-          </div>
-        </div>
-
-        <hr></hr>
-
-        {/* Processos na fila de espera por Atendimento */}
+      <div className="row">
         <div
-          className="jumbotron"
-          style={{ paddingTop: '20px', paddingBottom: '16px' }}
+          className="container"
+          style={{ marginTop: '10px', width: '800px' }}
         >
-          <h5>{this.state.queueProcessLog}</h5>
-          {this.state.queueProcess.map((v, k) => (
-            <Process
-              key={k}
-              top="0%"
-              left={'0%'}
-              text={'P' + v.id}
-              value={v.quantumCostAux}
-            />
-          ))}
-          <h4 className="text-primary">{this.state.queueProcessLength}</h4>
-        </div>
-
-        {/* Processos Finalizados */}
-        <div
-          className="jumbotron"
-          style={{ paddingTop: '20px', paddingBottom: '16px' }}
-        >
-          {this.state.finalizedProcess.length >= 1 ? (
-            <h5>Finalizados:</h5>
-          ) : (
-            <></>
-          )}
-          {this.state.finalizedProcess.map((v, k) => (
-            <div
-              className="d-inline-block"
-              style={{ marginLeft: '5px', marginBottom: '5px' }}
-              key={k}
-            >
-              <Badge color="secondary" badgeContent={v.quantumCostAux}>
-                <Button
-                  size="small"
-                  variant="contained"
-                  style={{ margin: '10px', padding: '0px' }}
+          <div className="d-inline-block" style={{ marginLeft: '0px' }}>
+            <h3>UniFBV - Round Robin Simulator</h3>
+            <h4>
+              Status:
+              {this.state.paused ? (
+                <span
+                  className="badge badge-warning"
+                  style={{ marginLeft: '10px' }}
                 >
-                  {'P' + v.id}
-                </Button>
-              </Badge>
+                  Paused!
+                </span>
+              ) : (
+                <span
+                  className="badge badge-success"
+                  style={{ marginLeft: '10px' }}
+                >
+                  In Attendance...
+                </span>
+              )}
+            </h4>
+            <h5>Tempo de Sistema: {this.state.systemTime} seg</h5>
+          </div>
+
+          {/* Botões */}
+          <div className="float-md-right">
+            <button
+              className="btn btn-md btn-primary"
+              onClick={this._handlerBtnOnClick}
+              style={{ marginRight: '5px', marginTop: '3px' }}
+            >
+              {this.state.paused ? <PlayArrowIcon /> : <PauseIcon />}
+              {this.state.btnText}
+            </button>
+
+            <button
+              className="btn btn-md btn-danger"
+              onClick={this._handlerRestartOnClick}
+              style={{ marginRight: '5px', marginTop: '3px' }}
+            >
+              <AutorenewIcon /> Refresh System
+            </button>
+          </div>
+
+          <hr />
+
+          <div className="row">
+            {/* Processos em Atendimento */}
+            <div className="col-md-7">
+              <div className="">
+                <h4>Processo(s) em Atendimento:</h4>
+                {this.state.attendance.map((v, k) => (
+                  <Attendance
+                    key={k}
+                    text={'P' + v.id}
+                    value={v.quantumCostAux}
+                  />
+                ))}
+                <p id="numero_atendentes" className="form-text text-muted">
+                  {this.state.quantumTime} segundos para iniciar o próximo
+                  Atendimento.
+                </p>
+              </div>
             </div>
-          ))}
-          {this.state.finalizedProcess.length >= 1 ? (
-            <h4 className="text-primary">{this.state.queueFinalizedLog}</h4>
-          ) : (
-            <h4 />
-          )}
+
+            {/* Entradas do Usuário */}
+            <div className="col-md-5">
+              <div className="form-group">
+                <input
+                  type="number"
+                  className="form-control"
+                  id="numero_atendentes"
+                  onChange={this._handlerInputOnChange}
+                  value={this.state.numberOfAttendances}
+                  min="1"
+                  max="8"
+                />
+                <small id="numero_atendentes" className="form-text text-muted">
+                  Define a Quantidade de CPU's no sistema (Min: 1, Máx: 8).
+                </small>
+              </div>
+
+              <div className="form-group">
+                <input
+                  type="number"
+                  className="form-control"
+                  id="time_max"
+                  onChange={this._handlerInputquantumMaxTimeOnChange}
+                  value={this.state.quantumMaxTime}
+                  min="1"
+                />
+                <small id="time_max" className="form-text text-muted">
+                  Define o Quantum de Atendimento em segundos.
+                </small>
+              </div>
+            </div>
+          </div>
+
+          <hr></hr>
+
+          {/* Processos na fila de espera por Atendimento */}
+          <div
+            className="jumbotron"
+            style={{ paddingTop: '20px', paddingBottom: '16px' }}
+          >
+            <h5>{this.state.queueProcessLog}</h5>
+            {this.state.queueProcess.map((v, k) => (
+              <Process
+                key={k}
+                top="0%"
+                left={'0%'}
+                text={'P' + v.id}
+                value={v.quantumCostAux}
+              />
+            ))}
+            <h4 className="text-primary">{this.state.queueProcessLength}</h4>
+          </div>
+
+          {/* Processos Finalizados */}
+          <div
+            className="jumbotron"
+            style={{ paddingTop: '20px', paddingBottom: '16px' }}
+          >
+            {this.state.finalizedProcess.length >= 1 ? (
+              <h5>Finalizados:</h5>
+            ) : (
+              <></>
+            )}
+            {this.state.finalizedProcess.map((v, k) => (
+              <div
+                className="d-inline-block"
+                style={{ marginLeft: '5px', marginBottom: '5px' }}
+                key={k}
+              >
+                <Badge color="secondary" badgeContent={v.quantumCostAux}>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    style={{ margin: '10px', padding: '0px' }}
+                  >
+                    {'P' + v.id}
+                  </Button>
+                </Badge>
+              </div>
+            ))}
+            {this.state.finalizedProcess.length >= 1 ? (
+              <h4 className="text-primary">{this.state.queueFinalizedLog}</h4>
+            ) : (
+              <h4 />
+            )}
+          </div>
+
+          {/* Renderização das Métricas */}
+
+          <h5 className="float-md-right">Round Robin Simulator (RRS).</h5>
         </div>
-
-        <h5 className="float-md-right">Round Robin Simulator (RRS).</h5>
-
-        {/* Renderização das Métricas */}
-        <div className="d-inline-block" style={{ marginLeft: '0px' }}>
-          <p></p>
+        <div
+          style={{
+            width: '700px'
+          }}
+        >
+          <div className="container" style={{ marginTop: '10px' }}>
+            <div className="float-md-left">
+              <div className="d-inline-block" style={{ marginLeft: '0px' }}>
+                <h6>
+                  {'1) Tempo Médio de Permanência no Sistema: '}
+                  {this.state.averageQuantumCost} seg
+                </h6>
+                <h6>{'2) Tempo Médio de Espera na Fila: '}</h6>
+                <h6>{'3) Tempo Médio de Atendimento: '}</h6>
+                <h6>{'4) Média de Clientes no Sistema: '}</h6>
+                <h6>{'5) Média de Clientes na Fila: '}</h6>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
