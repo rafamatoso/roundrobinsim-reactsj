@@ -29,9 +29,18 @@ export default class RoundRobin extends Component {
       quantumTime: 0, // Variável para auxiliar no gerenciamento do quantum
       quantumMaxTime: 5, // Tempo máximo do quantum de processamento
       systemTime: 0, // Tempo de Sistema
-      averageTimeQueue: 0,
+      sumTimeQueue: 0,
+      averageTimeInSystem: 0,
+      averageTimeQueue: 0, // Tempo médio em Fila
       sumQuantumCost: 0,
-      averageQuantumCost: 0,
+      averageQuantumCost: 0, // Tempo médio de Atendimento
+      listProcessInQueue: [],
+      sumProcessInQueue: 0,
+      averageProcessInQueue: 0,
+      averageProcessInSystem: 0,
+      listProcessInAttendance: [],
+      sumProcessInAttendance: 0,
+      averageProcessInAttendance: 0,
       queueProcessLog: '',
       queueProcessLength: '',
       queueFinalizedLog: '',
@@ -43,21 +52,25 @@ export default class RoundRobin extends Component {
   _managerQueueProccess = () => {
     createProcessInterval = setInterval(() => {
       let { queueProcess, paused } = this.state;
-      // Verifica o status do sistema
+      /* Verifica o status do sistema */
       if (!paused) {
-        // Random Processos a adicionar na Fila de Processos
+        /* Random Processos a adicionar na Fila de Processos */
         let random = Math.floor(Math.random() * MAX_RANDOM) + 1;
-        // Adiciona os novos Processos
+        /* Adiciona os novos Processos criados */
         for (let i = 0; i < random; ++i) {
-          const process = {}; // A cada iteração, um novo objeto Process será instanciado
-          count += 1; // Não pertence ao escopo da classe, será acessível por todos os objetos
-          process.id = count; //
+          /* A cada iteração, um novo objeto Process será instanciado */
+          const process = {};
+          /* Não pertence ao escopo da classe, será acessível por todos os objetos */
+          count += 1;
+          /* Instancia um objeto Processo com seus respectivos atributos */
+
+          process.id = count;
           process.quantumCost = Math.floor(Math.random() * MAX_RANDOM) + 1;
           process.quantumCostAux = process.quantumCost;
           process.timeInQueue = 0;
+          /* Adiciona o Processo instanciado na fila de espera */
           queueProcess.push(process);
-          /* Após os processos serem adicionados na fila de espera, a fila é organizada em ordem decrescente
-            do custo de cada processo */
+          /* Se a fila tiver 2 ou mais processos, ela é organizada em ordem decrescente do custo de Quantum auxiliar */
           if (queueProcess.length >= 2) {
             queueProcess.sort(this._compare);
           }
@@ -69,10 +82,10 @@ export default class RoundRobin extends Component {
           queueProcessLength: this._getQueueProcessLengthText()
         });
       }
-    }, 5000);
+    }, 5000); // Temporizador em milissegundos = 5 segundos
   };
 
-  /* 1.1) Método criado para auxiliar na organização da fila (comparador). O custo de quantum é o atributo a ser comparado. */
+  /* 1.1) Método criado para auxiliar na organização da fila (compara e ordena). O custo de Quantum Auxiliar será comparado. */
   _compare(a, b) {
     return (
       (a.quantumCostAux < b.quantumCostAux
@@ -86,13 +99,52 @@ export default class RoundRobin extends Component {
   /* 2) Função que "marca" os tempos: 1) Sistema, 2) Tempo de cada processo na fila de espera */
   _timeCounter = () => {
     let incTime = () => {
-      let { paused, queueProcess, systemTime } = this.state;
+      let {
+        paused,
+        queueProcess,
+        attendance,
+        systemTime,
+        listProcessInQueue,
+        sumProcessInQueue,
+        listProcessInAttendance,
+        sumProcessInAttendance
+      } = this.state;
       if (!paused) {
+        /* Aumento em 1 segundo o tempo do Sistema */
         systemTime += 1;
-        this.setState({ systemTime: systemTime });
+
+        /* Bloco responsável por calcular a média de Processos na Fila de Espera */
+        listProcessInQueue.push(queueProcess.length);
+        listProcessInQueue.forEach(element => {
+          sumProcessInQueue += element;
+        });
+        let averageProcessInQueue =
+          sumProcessInQueue / listProcessInQueue.length;
+
+        /* Bloco que calculará a Média de Processos no Sistema */
+        listProcessInAttendance.push(attendance.length);
+        listProcessInAttendance.forEach(element => {
+          sumProcessInAttendance += element;
+        });
+        let averageProcessInAttendance =
+          sumProcessInAttendance / listProcessInAttendance.length;
+
+        /* Calcula a média de Elementos no Sistema */
+        let averageProcessInSystem =
+          averageProcessInQueue + averageProcessInAttendance;
+        console.log(averageProcessInSystem);
+
+        /* Seta o estado */
+        this.setState({
+          systemTime: systemTime,
+          listProcessInQueue: listProcessInQueue,
+          averageProcessInQueue: averageProcessInQueue,
+          averageProcessInAttendance: averageProcessInAttendance,
+          averageProcessInSystem: averageProcessInSystem
+        });
       }
       if (!paused && queueProcess.length >= 1) {
-        // Para cada objeto no array queueProcess será iterado um valor que representa o tempo do processo sempre que estiver na fila de espera
+        /* Bloco que será responsável por marcar o tempo em Fila de Espera de cada Processo */
         queueProcess.forEach(element => {
           element.timeInQueue += 1;
         });
@@ -104,20 +156,20 @@ export default class RoundRobin extends Component {
   /* 3) Função que gerencia os processos que serão atendidos */
   _managerAttendance = () => {
     let { queueProcess, paused, numberOfAttendances } = this.state;
-    // Verifica se existe pelo menos 1 Processo na Fila de Processos
+    /* Bloco que verifica a lista de Espera de Processos para adicioná-los no Atendimento */
     if (!paused && queueProcess.length >= 1) {
       let loops =
         queueProcess.length < numberOfAttendances
           ? queueProcess.length
           : numberOfAttendances;
-      // Adiciona Processos ao Atendimento
+      /* Adiciona Processos ao Atendimento de acordo com a qtd de Atendentes*/
       let attendance = [];
       for (let i = 0; i < loops; ++i) {
         attendance.push(queueProcess[i]);
       }
-      // remove os Processos em Atendimento da Fila de Processos
+      /* Remove os Processos que foram para Atendimento da Fila de Processos */
       queueProcess.splice(0, numberOfAttendances);
-      // Seta o estado
+      /* Seta o estado */
       this.setState({
         queueProcess: queueProcess,
         attendance: attendance,
@@ -128,9 +180,9 @@ export default class RoundRobin extends Component {
 
   /* 4) Função que gerencia o atendimento da CPU */
   _startAttendance = () => {
-    // Criada uma variável chamada quantumTime que auxiliará na contagem do quantum da CPU
+    /* Criada uma variável chamada quantumTime que auxiliará na contagem do quantum da CPU */
     let quantumTime = this.state.quantumMaxTime;
-    // Função criada para iterar o quantum de cada processo. Seu escopo será executado se o sistema estiver ativo
+    /* Função criada para iterar o quantum de cada processo. Seu escopo será executado se o sistema estiver ativo */
     let incTime = () => {
       let {
         paused,
@@ -139,7 +191,10 @@ export default class RoundRobin extends Component {
         finalizedProcess,
         numberOfAttendances,
         sumQuantumCost,
-        averageQuantumCost
+        averageQuantumCost,
+        sumTimeQueue,
+        averageTimeQueue,
+        averageTimeInSystem
       } = this.state;
       if (!paused) {
         /* Último "estado" do sistema de atendimento. A variável quantumTime começará com 0, e quando o atendimento é realizado, 
@@ -149,23 +204,41 @@ export default class RoundRobin extends Component {
           quantumTime = this.state.quantumMaxTime;
           /* Bloco que gerencia a devolução do processo para a fila de espera ou inclusão na lista de finalizados */
           attendance.forEach(element => {
+            /* Para cada segundo de Atendimento, será subtraído 1 segundo do Custo de Quantum dos Processos Atendidos */
             element.quantumCostAux -= 1;
+            /* O bloco abaixo será executado para cada elemento que tiver custo de Quantum Auxiliar (finalizados) <= 0 */
             if (element.quantumCostAux <= 0) {
+              /* Como alguns processos não necessitam de todo o Quantum da CPU para serem finalizados,
+              esta linha forçará em 0 o custo auxiliar, não permitindo valores negativos, evitando a quebra do sistema */
               element.quantumCostAux = 0;
+              /* Adiciona os processos finalizados no respectivo array */
               finalizedProcess.push(element);
+              //console.log(finalizedProcess);
+              /* Bloco que calculará o custo médio de Quantums (média de Atendimento) dos processos finalizados*/
               sumQuantumCost += element.quantumCost;
               averageQuantumCost = sumQuantumCost / finalizedProcess.length;
+              /* Bloco que calculará o tempo médio na Fila dos Processos */
+              sumTimeQueue += element.timeInQueue;
+              averageTimeQueue = sumTimeQueue / finalizedProcess.length;
+              /* Bloco que calculará o Tempo Médio de permanência no Sistema */
+              averageTimeInSystem +=
+                averageTimeQueue + averageQuantumCost - averageTimeInSystem;
+              console.log(averageTimeInSystem);
             } else {
+              /* Devolve o processo para a fila de espera caso a condição inicial não seja satisfeita */
               queueProcess.push(element);
             }
             this.setState({
               queueProcessLength: this._getQueueProcessLengthText(),
               queueFinalizedLog: this._getQueueFinalizedLength(),
               sumQuantumCost: sumQuantumCost,
-              averageQuantumCost: averageQuantumCost
+              averageQuantumCost: averageQuantumCost,
+              sumTimeQueue: sumTimeQueue,
+              averageTimeQueue: averageTimeQueue,
+              averageTimeInSystem: averageTimeInSystem
             });
           });
-          /* Limpa o array de Atendimento da CPU */
+          /* Limpa o array de Atendimento quando o tempo de Quantum se esgota */
           attendance.splice(0, numberOfAttendances);
         }
         /* Bloco responsável pela diminuição do custo de quantum (em segundos) de cada processo em atendimento */
@@ -176,6 +249,7 @@ export default class RoundRobin extends Component {
             }
           });
         }
+        /* Seta o estado e diminui 1 segundo do tempo de quantum do Atendimento */
         this.setState({ quantumTime: quantumTime }, () => {});
         quantumTime -= 1;
       }
@@ -422,30 +496,67 @@ export default class RoundRobin extends Component {
             {this.state.finalizedProcess.length >= 1 ? (
               <h4 className="text-primary">{this.state.queueFinalizedLog}</h4>
             ) : (
-              <h4 />
+              <h4>{''}</h4>
             )}
           </div>
 
-          {/* Renderização das Métricas */}
-
           <h5 className="float-md-right">Round Robin Simulator (RRS).</h5>
         </div>
+
+        {/* Renderização das Métricas */}
         <div
           style={{
             width: '700px'
           }}
         >
-          <div className="container" style={{ marginTop: '10px' }}>
+          <div
+            className="container"
+            style={{ marginTop: '10px', marginLeft: 50 }}
+          >
             <div className="float-md-left">
               <div className="d-inline-block" style={{ marginLeft: '0px' }}>
-                <h6>
+                <div style={{ height: '111px' }}></div>
+                <hr></hr>
+                <p>
                   {'1) Tempo Médio de Permanência no Sistema: '}
-                  {this.state.averageQuantumCost} seg
-                </h6>
-                <h6>{'2) Tempo Médio de Espera na Fila: '}</h6>
-                <h6>{'3) Tempo Médio de Atendimento: '}</h6>
-                <h6>{'4) Média de Clientes no Sistema: '}</h6>
-                <h6>{'5) Média de Clientes na Fila: '}</h6>
+                  {
+                    <text style={{ fontWeight: 'bold' }}>
+                      {this.state.averageTimeInSystem.toFixed(2) + ' seg'}
+                    </text>
+                  }
+                </p>
+                <p>
+                  {'2) Tempo Médio de Espera na Fila: '}
+                  {
+                    <text style={{ fontWeight: 'bold' }}>
+                      {this.state.averageTimeQueue.toFixed(2) + ' seg'}
+                    </text>
+                  }
+                </p>
+                <p>
+                  {'3) Tempo Médio de Atendimento (Quantum): '}
+                  {
+                    <text style={{ fontWeight: 'bold' }}>
+                      {this.state.averageQuantumCost.toFixed(2) + ' seg'}
+                    </text>
+                  }
+                </p>
+                <p>
+                  {'4) Média de Clientes no Sistema: '}
+                  {
+                    <text style={{ fontWeight: 'bold' }}>
+                      {this.state.averageProcessInSystem.toFixed(0)}
+                    </text>
+                  }
+                </p>
+                <p>
+                  {'5) Média de Processos na Fila: '}
+                  {
+                    <text style={{ fontWeight: 'bold' }}>
+                      {this.state.averageProcessInQueue.toFixed(0)}
+                    </text>
+                  }
+                </p>
               </div>
             </div>
           </div>
