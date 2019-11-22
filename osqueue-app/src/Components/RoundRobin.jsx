@@ -30,6 +30,9 @@ export default class RoundRobin extends Component {
       quantumMaxTime: 5, // Tempo máximo do quantum de processamento
       systemTime: 0, // Tempo de Sistema
       sumTimeQueue: 0,
+      listArrivalRate: [],
+      sumArrivalRate: 0,
+      averageArrivalRate: 0,
       averageTimeInSystem: 0,
       averageTimeQueue: 0, // Tempo médio em Fila
       sumQuantumCost: 0,
@@ -51,11 +54,24 @@ export default class RoundRobin extends Component {
   /* 1) Função que cria novos processos e gerencia a entrada na fila de Processos */
   _managerQueueProccess = () => {
     createProcessInterval = setInterval(() => {
-      let { queueProcess, paused } = this.state;
+      let {
+        queueProcess,
+        paused,
+        listArrivalRate,
+        sumArrivalRate
+      } = this.state;
       /* Verifica o status do sistema */
       if (!paused) {
         /* Random Processos a adicionar na Fila de Processos */
         let random = Math.floor(Math.random() * MAX_RANDOM) + 1;
+        /* Adiciona a quantidade de processos gerados numa lista para calcular o Ritmo de Chegada de Processos*/
+        listArrivalRate.push(random);
+        listArrivalRate.forEach(element => {
+          sumArrivalRate += element;
+        });
+        let averageArrivalRate = sumArrivalRate / listArrivalRate.length;
+        console.log(averageArrivalRate);
+
         /* Adiciona os novos Processos criados */
         for (let i = 0; i < random; ++i) {
           /* A cada iteração, um novo objeto Process será instanciado */
@@ -79,7 +95,8 @@ export default class RoundRobin extends Component {
         this.setState({
           queueProcess: queueProcess,
           queueProcessLog: this._getQueueProcessLogText(random),
-          queueProcessLength: this._getQueueProcessLengthText()
+          queueProcessLength: this._getQueueProcessLengthText(),
+          averageArrivalRate: averageArrivalRate
         });
       }
     }, 5000); // Temporizador em milissegundos = 5 segundos
@@ -132,7 +149,7 @@ export default class RoundRobin extends Component {
         /* Calcula a média de Elementos no Sistema */
         let averageProcessInSystem =
           averageProcessInQueue + averageProcessInAttendance;
-        console.log(averageProcessInSystem);
+        //console.log(averageProcessInSystem);
 
         /* Seta o estado */
         this.setState({
@@ -214,16 +231,16 @@ export default class RoundRobin extends Component {
               /* Adiciona os processos finalizados no respectivo array */
               finalizedProcess.push(element);
               //console.log(finalizedProcess);
-              /* Bloco que calculará o custo médio de Quantums (média de Atendimento) dos processos finalizados*/
+              /* Bloco que calculará o Custo Médio de Quantums (média de Atendimento) dos processos finalizados*/
               sumQuantumCost += element.quantumCost;
               averageQuantumCost = sumQuantumCost / finalizedProcess.length;
-              /* Bloco que calculará o tempo médio na Fila dos Processos */
+              /* Bloco que calculará o Tempo Médio na Fila dos Processos */
               sumTimeQueue += element.timeInQueue;
               averageTimeQueue = sumTimeQueue / finalizedProcess.length;
               /* Bloco que calculará o Tempo Médio de permanência no Sistema */
               averageTimeInSystem +=
                 averageTimeQueue + averageQuantumCost - averageTimeInSystem;
-              console.log(averageTimeInSystem);
+              //console.log(averageTimeInSystem);
             } else {
               /* Devolve o processo para a fila de espera caso a condição inicial não seja satisfeita */
               queueProcess.push(element);
@@ -345,10 +362,7 @@ export default class RoundRobin extends Component {
   render() {
     return (
       <div className="row">
-        <div
-          className="container"
-          style={{ marginTop: '10px', width: '800px' }}
-        >
+        <div className="container" style={{ marginTop: '10px' }}>
           <div className="d-inline-block" style={{ marginLeft: '0px' }}>
             <h3>UniFBV - Round Robin Simulator</h3>
             <h4>
@@ -396,9 +410,9 @@ export default class RoundRobin extends Component {
 
           <div className="row">
             {/* Processos em Atendimento */}
-            <div className="col-md-7">
-              <div className="">
-                <h4>Processo(s) em Atendimento:</h4>
+            <div className="col-md-5">
+              <div>
+                <h5>Processo(s) em Atendimento:</h5>
                 {this.state.attendance.map((v, k) => (
                   <Attendance
                     key={k}
@@ -414,7 +428,7 @@ export default class RoundRobin extends Component {
             </div>
 
             {/* Entradas do Usuário */}
-            <div className="col-md-5">
+            <div className="col-md-2">
               <div className="form-group">
                 <input
                   type="number"
@@ -442,6 +456,76 @@ export default class RoundRobin extends Component {
                 <small id="time_max" className="form-text text-muted">
                   Define o Quantum de Atendimento em segundos.
                 </small>
+              </div>
+            </div>
+
+            {/* Métricas */}
+            <div className="col-md-5">
+              <div
+                style={{
+                  backgroundColor: '#e9ecef',
+                  borderRadius: '10px',
+                  paddingLeft: '20px',
+                  height: '212px'
+                }}
+              >
+                <h4>Métricas:</h4>
+                <div style={{ display: 'block' }}>
+                  <h7>
+                    {'1) Taxa de Chegada de Processos no Sistema: '}
+                    {
+                      <text style={{ fontWeight: 'bold' }}>
+                        {(this.state.averageArrivalRate / 5).toFixed(2) +
+                          ' seg'}
+                      </text>
+                    }
+                  </h7>
+                  <div></div>
+                  <h7>
+                    {'2) Tempo Médio de Permanência no Sistema: '}
+                    {
+                      <text style={{ fontWeight: 'bold' }}>
+                        {this.state.averageTimeInSystem.toFixed(2) + ' seg'}
+                      </text>
+                    }
+                  </h7>
+                  <div></div>
+                  <h7>
+                    {'3) Tempo Médio de Espera na Fila: '}
+                    {
+                      <text style={{ fontWeight: 'bold' }}>
+                        {this.state.averageTimeQueue.toFixed(2) + ' seg'}
+                      </text>
+                    }
+                  </h7>
+                  <div></div>
+                  <h7>
+                    {'4) Tempo Médio de Atendimento (Quantum): '}
+                    {
+                      <text style={{ fontWeight: 'bold' }}>
+                        {this.state.averageQuantumCost.toFixed(2) + ' seg'}
+                      </text>
+                    }
+                  </h7>
+                  <div></div>
+                  <h7>
+                    {'5) Média de Clientes no Sistema: '}
+                    {
+                      <text style={{ fontWeight: 'bold' }}>
+                        {this.state.averageProcessInSystem.toFixed(0)}
+                      </text>
+                    }
+                  </h7>
+                  <div></div>
+                  <h7>
+                    {'6) Média de Processos na Fila: '}
+                    {
+                      <text style={{ fontWeight: 'bold' }}>
+                        {this.state.averageProcessInQueue.toFixed(0)}
+                      </text>
+                    }
+                  </h7>
+                </div>
               </div>
             </div>
           </div>
@@ -504,63 +588,6 @@ export default class RoundRobin extends Component {
         </div>
 
         {/* Renderização das Métricas */}
-        <div
-          style={{
-            width: '700px'
-          }}
-        >
-          <div
-            className="container"
-            style={{ marginTop: '10px', marginLeft: 50 }}
-          >
-            <div className="float-md-left">
-              <div className="d-inline-block" style={{ marginLeft: '0px' }}>
-                <div style={{ height: '111px' }}></div>
-                <hr></hr>
-                <p>
-                  {'1) Tempo Médio de Permanência no Sistema: '}
-                  {
-                    <text style={{ fontWeight: 'bold' }}>
-                      {this.state.averageTimeInSystem.toFixed(2) + ' seg'}
-                    </text>
-                  }
-                </p>
-                <p>
-                  {'2) Tempo Médio de Espera na Fila: '}
-                  {
-                    <text style={{ fontWeight: 'bold' }}>
-                      {this.state.averageTimeQueue.toFixed(2) + ' seg'}
-                    </text>
-                  }
-                </p>
-                <p>
-                  {'3) Tempo Médio de Atendimento (Quantum): '}
-                  {
-                    <text style={{ fontWeight: 'bold' }}>
-                      {this.state.averageQuantumCost.toFixed(2) + ' seg'}
-                    </text>
-                  }
-                </p>
-                <p>
-                  {'4) Média de Clientes no Sistema: '}
-                  {
-                    <text style={{ fontWeight: 'bold' }}>
-                      {this.state.averageProcessInSystem.toFixed(0)}
-                    </text>
-                  }
-                </p>
-                <p>
-                  {'5) Média de Processos na Fila: '}
-                  {
-                    <text style={{ fontWeight: 'bold' }}>
-                      {this.state.averageProcessInQueue.toFixed(0)}
-                    </text>
-                  }
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     );
   }
