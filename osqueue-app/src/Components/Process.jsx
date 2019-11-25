@@ -25,7 +25,11 @@ export default function Process(props) {
         badgeContent={props.value}
         className={style.margin}
       >
-        <Button size="small" variant="contained" style={{ padding: '0px' }}>
+        <Button
+          size="medium"
+          variant="contained"
+          style={{ padding: '0px', fontWeight: 'bold' }}
+        >
           {props.text}
         </Button>
       </Badge>

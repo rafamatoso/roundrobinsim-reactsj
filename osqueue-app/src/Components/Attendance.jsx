@@ -1,7 +1,6 @@
 import React from 'react';
-import Badge from '@material-ui/core/Badge';
-import Button from '@material-ui/core/Button';
-import { makeStyles } from '@material-ui/core/styles';
+import { Badge, Button } from '@material-ui/core';
+import { makeStyles, withStyles } from '@material-ui/core/styles';
 
 const useStyles = makeStyles(theme => ({
   margin: {
@@ -25,10 +24,28 @@ export default function Attendance(props) {
         badgeContent={props.value}
         className={style.margin}
       >
-        <Button size="small" variant="contained" style={{ padding: '0px' }}>
+        <StyledButton
+          size="medium"
+          style={{ padding: '0px', fontWeight: 'bold' }}
+        >
           {props.text}
-        </Button>
+        </StyledButton>
       </Badge>
     </div>
   );
 }
+
+const StyledButton = withStyles({
+  root: {
+    background: 'linear-gradient(45deg, #4bbf6b 80%, #4bbf6b 90%)',
+    borderRadius: 3,
+    border: 0,
+    color: 'white',
+    height: 24,
+
+    boxShadow: '0 3px 5px 2px rgba(75, 191, 107, .3)'
+  },
+  label: {
+    textTransform: 'capitalize'
+  }
+})(Button);
