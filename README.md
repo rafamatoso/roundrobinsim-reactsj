@@ -16,7 +16,7 @@
 
 1. Jamerson Souza (Matrícula: 171081857) [(LinkedIn)](https://www.linkedin.com/in/jamerson-souza-16bb9a15a)</br>
 
-1. Filipe Falcão (Matrícula: 182081357)</br>
+1. Filipe Falcão (Matrícula: 182081357) [(LinkedIn)](https://www.linkedin.com/in/filipe-falcão-067b063a)</br>
 
 ---
 
