@@ -22,7 +22,7 @@
 
 ### Simulador de Escalonamento de Processos num Sistema Operacional usando Algoritmo Round Robin
 
-Link para a Aplicação: **[Round Robin Simulator](analisemo.herokuapp.com)**
+Link para a Aplicação: **[Round Robin Simulator](https://analisemo.herokuapp.com/)**
 
 #### Visão Geral
 
