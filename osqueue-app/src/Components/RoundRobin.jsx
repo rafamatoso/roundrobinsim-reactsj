@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
 import Process from './Process';
 import Attendance from './Attendance';
+import Finalizeds from './Finalizeds';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
 import PauseIcon from '@material-ui/icons/Pause';
 import AutorenewIcon from '@material-ui/icons/Autorenew';
-import Badge from '@material-ui/core/Badge';
-import Button from '@material-ui/core/Button';
 import { ColorsApp } from '../Configurations/colors';
+import Logo from '../Configurations/Assets/logorrs.png';
 
 let count = 0;
 let attendanceInterval = null;
@@ -22,38 +22,27 @@ export default class RoundRobin extends Component {
   _initialState = () => {
     return {
       paused: true, // Estado geral do sistema: pausado ou não.
-
       queueProcess: [], // Fila de Processos em espera por Atendimento
       attendance: [], // Lista de Processos em Atendimento
-      finalizedProcess: [], // Lista de Processos finalizados
-
+      finalizedProcess: [], // Lista de Processos Finalizados
       max_random: 5,
-
       numberOfAttendances: 4, // Número de Atendentes (Cpu)
-      quantumMin: 0, // Variável para auxiliar no gerenciamento do quantum
+      quantumMin: 0, // Quantum mínimo de atendimento
       quantumMax: 5, // Quantum máximo de atendimento
       systemTime: 0, // Tempo de Sistema
-
-      listLambda: [], // Lista auxiliar para cálculo do Lambda
-      lambda: 0, // Métrica 1 - Ritmo Médio de Chegada de Processos
-
-      sumTimeQueue: 0,
-      tq: 0, // Tempo médio em Fila
-
-      sumQuantumCost: 0,
-      averageQuantumCost: 0, // Tempo médio de Atendimento
-
-      ts: 0,
-
-      listProcessInQueue: [],
-      npq: 0, // Número de Processos no Sistema
-
-      nps: 0,
-
-      listProcessInAttendance: [],
-      sumProcessInAttendance: 0,
-      ta: 0,
-
+      listLambda: [], // Lista auxiliar
+      listProcessInQueue: [], // Lista auxiliar
+      listProcessInAttendance: [], // Lista auxiliar
+      sumTimeQueue: 0, // Variável auxiliar
+      sumQuantumCost: 0, // Variável auxiliar
+      sumProcessInAttendance: 0, // Variável auxiliar
+      lambda: 0, // Ritmo Médio de Chegada de Processos
+      tq: 0, // Tempo Médio em Fila
+      ta: 0, // Tempo médio de Atendimento
+      ts: 0, // Tempo Médio no Sistema
+      npq: 0, // Número Médio de Processos na Fila
+      npa: 0, // Número Médio de Processos no Atendimento
+      nps: 0, // Número Médio de Processos no Sistema
       queueProcessLog: '',
       queueProcessLength: '',
       queueFinalizedLog: '',
@@ -65,14 +54,11 @@ export default class RoundRobin extends Component {
   _managerQueueProccess = () => {
     createProcessInterval = setInterval(() => {
       let { queueProcess, paused, listLambda, max_random } = this.state;
-
       if (!paused) {
         let random = Math.floor(Math.random() * max_random) + 1;
-
         // Lista auxiliar utilizada para o calculo da Taxa de Chegada no Sistema
         listLambda.push(random);
-
-        // Instancia e adiciona os objetos Processos na Fila de Espera
+        // Instancia e adiciona os Processos na Fila de Espera
         for (let i = 0; i < random; ++i) {
           const process = {};
           count += 1;
@@ -80,49 +66,40 @@ export default class RoundRobin extends Component {
           process.quantumCost = Math.floor(Math.random() * max_random) + 1;
           process.quantumCostAux = process.quantumCost;
           process.timeInQueue = 0;
-
+          let randomPriority = Math.random();
+          // Probabilidade de 15% para o Processo ser Prioritário
+          randomPriority <= 0.15
+            ? (process.priority = 1)
+            : (process.priority = 0);
+          process.starvation = false;
           // Adiciona o Processo instanciado na Fila de Espera
           queueProcess.push(process);
-
-          // Se a fila tiver 2 ou mais processos, ela é organizada em ordem decrescente do custo de Quantum auxiliar
-          if (queueProcess.length >= 2) {
-            queueProcess.sort(this._compare);
-          }
         }
 
+        // Organiza Fila de Espera
+        if (queueProcess.length >= 2) {
+          queueProcess.sort(this._compareQuantumCost);
+        }
         this.setState({
           queueProcess: queueProcess,
           queueProcessLog: this._getQueueProcessLogText(random),
           queueProcessLength: this._getQueueProcessLengthText(),
-          lambda: this._calculateLambda(listLambda)
+          lambda: this._calculateLambda()
         });
       }
     }, 5000);
   };
 
-  _compare(a, b) {
-    return (
-      (a.quantumCostAux < b.quantumCostAux
-        ? -1
-        : a.quantumCostAux > b.quantumCostAux
-        ? 1
-        : 0) * -1
-    );
-  }
-
-  /* 2) Função que "marca" os tempos: 1) Sistema, 2) Tempo de cada processo na fila de espera */
+  /* 2) Contador de Tempo: 1) Tempo de Sistema e 2) Tempo de Processo na Fila de Espera */
   _timeCounter = () => {
     let incTime = () => {
       let { paused, queueProcess, systemTime } = this.state;
       if (!paused) {
         systemTime += 1;
-
         // Chama função para o calculo da Média de Processos na Fila de Espera - NPQ
         this._calculateNPQ();
-
         // Chama funcão para o calculo da Média de Processos no Sistema - NPS
         this._calculateNPS();
-
         this.setState({
           systemTime: systemTime
         });
@@ -131,30 +108,49 @@ export default class RoundRobin extends Component {
         /* Bloco que será responsável por marcar o tempo em Fila de Espera de cada Processo */
         queueProcess.forEach(element => {
           element.timeInQueue += 1;
+          this._isInStarvation(element);
         });
       }
     };
     queueInterval = setInterval(incTime, 1000);
   };
 
-  /* 3) Função que gerencia os processos que serão atendidos */
+  // 3) Função que gerencia os processos que serão atendidos
   _managerAttendance = () => {
     let { queueProcess, paused, numberOfAttendances } = this.state;
-
-    /* Bloco que verifica a lista de Espera de Processos para adicioná-los no Atendimento */
+    // Bloco que verifica a lista de Espera de Processos para adicioná-los no Atendimento
     if (!paused && queueProcess.length >= 1) {
       let loops =
         queueProcess.length < numberOfAttendances
           ? queueProcess.length
           : numberOfAttendances;
-
-      /* Adiciona Processos ao Atendimento de acordo com a qtd de Atendentes*/
+      // Lista de Processos em Atendimento
       let attendance = [];
-      for (let i = 0; i < loops; ++i) {
-        attendance.push(queueProcess[i]);
+
+      /* Verifica se existe 1 processo prioritário na Fila de Espera
+      A variável processPriorityIndex será atribuída com o resultado do id do primeiro elemento
+      que possui prioridade = 1, servindo de pivô a ser remanajedado entre as outras listas */
+      let processPriorityIndex = queueProcess.indexOf(
+        queueProcess.find(element => {
+          return element.priority === 1;
+        })
+      );
+
+      // Variável criada para auxiliar na lógica de remoção e adição nas listas.
+      let countProcessPriorityIndex = 0;
+
+      // Bloco que gerencia a inclusão do Processo Prioritário no Atendimento e sua retirada da Fila de Espera
+      if (processPriorityIndex >= 0) {
+        attendance.push(queueProcess[processPriorityIndex]);
+        queueProcess.splice(processPriorityIndex, 1);
+        countProcessPriorityIndex++;
       }
 
-      /* Remove os Processos que foram para Atendimento da Fila de Processos */
+      // Se houver processo prioritário, os outros processos perderão prioridade na hora da adição ao Atendimento
+      for (let i = 0; i < loops - countProcessPriorityIndex; ++i) {
+        attendance.push(queueProcess[i]);
+      }
+      // Remove os Processos da Fila de Processos para o Atendimento
       queueProcess.splice(0, numberOfAttendances);
 
       this.setState({
@@ -165,7 +161,7 @@ export default class RoundRobin extends Component {
     }
   };
 
-  /* 4) Função que gerencia o atendimento da CPU */
+  // 4) Função que gerencia o atendimento da CPU
   _startAttendance = () => {
     let quantumMin = this.state.quantumMax;
     let incTime = () => {
@@ -181,11 +177,12 @@ export default class RoundRobin extends Component {
         if (quantumMin === 0) {
           this._managerAttendance();
           quantumMin = this.state.quantumMax;
+          // Percorre a lista de Processos Atendidos
           attendance.forEach(element => {
             element.quantumCostAux -= 1;
             if (element.quantumCostAux <= 0) {
               element.quantumCostAux = 0;
-              // Adiciona os Processos que terminaram são adicionados à lista de Finalizados
+              // Os Processos que terminaram são adicionados a lista de Finalizados
               finalizedProcess.push(element);
               // Chama a função para o Cálculo do Tempo Médio de Permanência no Sistema
               this._calculateTS(element);
@@ -209,78 +206,112 @@ export default class RoundRobin extends Component {
           });
         }
         this.setState({ quantumMin: quantumMin }, () => {});
+        // Diminui o Quantum de cada Processo em Atendimento
         quantumMin -= 1;
       }
     };
     attendanceInterval = setInterval(incTime, 1000);
   };
 
-  // Calcula a Taxa de Chegada de Processos no Sistema
-  _calculateLambda(list) {
-    let sumLambda = 0;
-    list.forEach(element => {
-      sumLambda += element;
-    });
-    return (sumLambda / list.length).toFixed(2);
+  // Função que compara os elementos e auxilia o método .sort
+  _compareQuantumCost(a, b) {
+    return (
+      (a.quantumCostAux < b.quantumCostAux
+        ? -1
+        : a.quantumCostAux > b.quantumCostAux
+        ? 1
+        : 0) * -1
+    );
   }
 
-  // Métrica 1 - Tempo Médio de Permanência no Sistema - TS
+  // 1) Calcula a Taxa de Chegada de Processos no Sistema
+  _calculateLambda() {
+    let { listLambda } = this.state;
+    let sumLambda = 0;
+    listLambda.forEach(element => {
+      sumLambda += element;
+    });
+    return (sumLambda / listLambda.length).toFixed(2);
+  }
+
+  // 2) Tempo Médio de Atendimento
+  // 3) Tempo Médio de Espera na Fila
+  // 4) Tempo Médio de Permanência no Sistema - TS
   _calculateTS(element) {
     let { sumQuantumCost, sumTimeQueue, finalizedProcess } = this.state;
 
+    // 2) Tempo Médio de Atendimento
     sumQuantumCost += element.quantumCost;
-    let averageQuantumCost = +(
-      sumQuantumCost / finalizedProcess.length
-    ).toFixed(2);
+    let ta = +(sumQuantumCost / finalizedProcess.length).toFixed(2);
 
+    // 3) Tempo Médio de Espera na Fila
     sumTimeQueue += element.timeInQueue;
+
     let tq = +(sumTimeQueue / finalizedProcess.length).toFixed(2);
 
-    let ts = tq + averageQuantumCost;
+    // 4) - Tempo Médio de Permanência no Sistema - TS
+    let ts = tq + ta;
 
     this.setState({
-      sumQuantumCost: sumQuantumCost,
-      averageQuantumCost: averageQuantumCost,
       sumTimeQueue: sumTimeQueue,
+      sumQuantumCost: sumQuantumCost,
+      ta: ta,
       tq: tq,
       ts: ts
     });
   }
 
-  // Métrica 4 - Média de Clientes no Sistema
-  _calculateNPS() {
-    let { attendance, listProcessInAttendance, npq } = this.state;
-    let sumProcessInAttendance = 0;
-    let ta = 0;
-    listProcessInAttendance.push(attendance.length);
-    listProcessInAttendance.forEach(element => {
-      sumProcessInAttendance += element;
-    });
-    // Tempo Médio dos Processos em Atendimento
-    ta = sumProcessInAttendance / listProcessInAttendance.length;
-    // Calcula a média de Elementos no Sistema
-    let nps = npq + ta;
-    this.setState({
-      nps: nps,
-      ta: ta
-    });
-  }
-
-  // Métrica 5 - Média de Clientes na Fila de Espera
+  // 5) - Média de Clientes na Fila
   _calculateNPQ() {
     let { listProcessInQueue, queueProcess } = this.state;
     listProcessInQueue.push(queueProcess.length);
-    let sumProcessInpqueue = 0;
+    let sumProcessInQueue = 0;
     listProcessInQueue.forEach(element => {
-      sumProcessInpqueue += element;
+      sumProcessInQueue += element;
     });
-    let npq = sumProcessInpqueue / listProcessInQueue.length;
+    let npq = sumProcessInQueue / listProcessInQueue.length;
     this.setState({
       npq: npq,
       listProcessInQueue: listProcessInQueue
     });
   }
 
+  // 6) Média de Clientes no Sistema
+  _calculateNPS() {
+    let { attendance, listProcessInAttendance, npq } = this.state;
+
+    let sumProcessInAttendance = 0;
+    let npa = 0;
+    listProcessInAttendance.push(attendance.length);
+    listProcessInAttendance.forEach(element => {
+      sumProcessInAttendance += element;
+    });
+    npa = sumProcessInAttendance / listProcessInAttendance.length;
+    // 6) Média de Clientes no Sistema
+    let nps = npq + npa;
+    this.setState({
+      nps: nps,
+      npa: npa
+    });
+  }
+
+  _isInStarvation(element) {
+    let { ts, systemTime } = this.state;
+    /* Variável auxiliar que define que o Processo entrará em starvation se possuir tempo de fila 50% maior que 
+    que o TS - Tempo Médio de Permanência no Sistema. */
+    let starving = ts * 1.5;
+    // Só será executada a partir de 25 segundos de iniciação do Sistema (tempo hábil para se ter um TS razoável)
+    if (
+      !element.starvation &&
+      systemTime >= 25 &&
+      element.timeInQueue >= starving
+    ) {
+      element.starvation = true;
+      element.priority = 1;
+    }
+  }
+
+  // Funções auxiliares que mostram textos na aplicação
   _getQueueProcessLogText = n => {
     let proccess = n === 1 ? 'Processo' : 'Processos';
     let entrou = n === 1 ? 'entrou' : 'entraram';
@@ -312,8 +343,7 @@ export default class RoundRobin extends Component {
     );
   };
 
-  /* As funções handler servem para capturar algum tipo de informação de input pelo usuário
-  exemplo: click de um botão, escrita num formulário e etc...*/
+  // Funções do tipo handler capturam algum tipo de informação do usuário
   _handlerBtnOnClick = () => {
     let paused = this.state.paused;
     let btnText = paused ? 'Pause System' : this._initialState().btnText;
@@ -357,31 +387,33 @@ export default class RoundRobin extends Component {
     }
   };
 
-  /* componentDidMount() É invocado imediatamente após um componente ser montado (inserido na árvore). 
-  Inicializações que exijam nós do DOM devem vir aqui. 
-  Se precisar carregar data de um endpoint remoto, este é um bom lugar para instanciar sua requisição.*/
+  // Componentes montados, executa o escopo
   componentDidMount() {
     this._managerQueueProccess();
     this._startAttendance();
     this._timeCounter();
   }
 
-  /* componentWillUnmount() é invocado imediatamente antes que um componente seja desmontado e destruído.
-  Qualquer limpeza necessária deve ser realizada neste método, como invalidar timers, cancelar requisições de rede, 
-  ou limpar qualquer subscrição que foi criada no componentDidMount(). */
+  // Componentes serão desmontados, limpa a app
   componentWillUnmount() {
     clearInterval(attendanceInterval);
     clearInterval(createProcessInterval);
     clearInterval(queueInterval);
   }
 
-  /* Método de renderização da aplicação */
   render() {
     return (
       <div
         style={{ marginTop: '10px', marginRight: '50px', marginLeft: '50px' }}
       >
-        <h3>UniFBV - Round Robin Simulator</h3>
+        <div className="row" style={{ alignItems: 'center' }}>
+          <img
+            src={Logo}
+            alt=""
+            style={{ height: '80px', width: '80px' }}
+          ></img>
+          <h3>UniFBV - Round Robin Simulator</h3>
+        </div>
         <hr></hr>
         <div className="row">
           <div
@@ -413,7 +445,6 @@ export default class RoundRobin extends Component {
           </div>
 
           {/* Entradas do Usuário */}
-
           <div
             className="col-md-6"
             style={{
@@ -517,16 +548,16 @@ export default class RoundRobin extends Component {
           {this.state.queueProcess.map((v, k) => (
             <Process
               key={k}
-              top="0%"
-              left={'0%'}
-              text={'P' + v.id}
+              text={v.priority === 0 ? 'P' + v.id : '!P' + v.id}
               value={v.quantumCostAux}
+              priority={v.priority}
+              starvation={v.starvation}
             />
           ))}
           <h4 className="text-primary">{this.state.queueProcessLength}</h4>
         </div>
 
-        <hr></hr>
+        <hr />
 
         <div className="row">
           {/* Processos em Atendimento */}
@@ -546,8 +577,10 @@ export default class RoundRobin extends Component {
               {this.state.attendance.map((v, k) => (
                 <Attendance
                   key={k}
-                  text={'P' + v.id}
+                  text={v.priority === 0 ? 'P' + v.id : '!P' + v.id}
                   value={v.quantumCostAux}
+                  priority={v.priority}
+                  starvation={v.starvation}
                 />
               ))}
               <p id="numero_atendentes" className="form-text text-muted">
@@ -561,7 +594,7 @@ export default class RoundRobin extends Component {
           <div className="col-md-6">
             <div
               style={{
-                backgroundColor: ColorsApp.bg1,
+                backgroundColor: ColorsApp.bg2Attendance,
                 borderRadius: '10px',
                 paddingTop: '20px',
                 paddingBottom: '16px',
@@ -573,20 +606,19 @@ export default class RoundRobin extends Component {
               <h5>Métricas:</h5>
               <div style={{ display: 'block' }}>
                 <h7>
-                  {'1) Lambda - Ritmo Médio de Chegada: '}
+                  {'1) Ritmo Médio de Chegada (Lambda): '}
                   {
                     <text style={{ fontWeight: 'bold' }}>
-                      {(this.state.lambda / this.state.quantumMax).toFixed(2) +
-                        ' seg'}
+                      {(this.state.lambda / 5).toFixed(2) + ' processos/seg'}
                     </text>
                   }
                 </h7>
                 <div></div>
                 <h7>
-                  {'2) Tempo Médio de Permanência no Sistema: '}
+                  {'2) Tempo Médio de Atendimento: '}
                   {
                     <text style={{ fontWeight: 'bold' }}>
-                      {this.state.ts.toFixed(2) + ' seg'}
+                      {this.state.ta.toFixed(2) + ' seg'}
                     </text>
                   }
                 </h7>
@@ -601,16 +633,25 @@ export default class RoundRobin extends Component {
                 </h7>
                 <div></div>
                 <h7>
-                  {'4) Tempo Médio de Atendimento (Quantum): '}
+                  {'4) Tempo Médio de Permanência no Sistema: '}
                   {
                     <text style={{ fontWeight: 'bold' }}>
-                      {this.state.averageQuantumCost.toFixed(2) + ' seg'}
+                      {this.state.ts.toFixed(2) + ' seg'}
                     </text>
                   }
                 </h7>
                 <div></div>
                 <h7>
-                  {'5) Média de Clientes no Sistema: '}
+                  {'5) Média de Processos na Fila: '}
+                  {
+                    <text style={{ fontWeight: 'bold' }}>
+                      {this.state.npq.toFixed(0)}
+                    </text>
+                  }
+                </h7>
+                <div></div>
+                <h7>
+                  {'6) Média de Clientes no Sistema: '}
                   {
                     <text style={{ fontWeight: 'bold' }}>
                       {this.state.nps.toFixed(0)}
@@ -619,19 +660,15 @@ export default class RoundRobin extends Component {
                 </h7>
                 <div></div>
                 <h7>
-                  {'6) Média de Processos na Fila: '}
-                  {
-                    <text style={{ fontWeight: 'bold' }}>
-                      {this.state.npq.toFixed(0)}
-                    </text>
-                  }
+                  {'7) Quantidade de Processos Criados: '}
+                  {<text style={{ fontWeight: 'bold' }}>{count}</text>}
                 </h7>
               </div>
             </div>
           </div>
         </div>
 
-        <hr></hr>
+        <hr />
 
         {/* Processos Finalizados */}
         <div
@@ -644,21 +681,14 @@ export default class RoundRobin extends Component {
             <></>
           )}
           {this.state.finalizedProcess.map((v, k) => (
-            <div
-              className="d-inline-block"
-              style={{ marginLeft: '5px', marginBottom: '5px' }}
+            <Finalizeds
               key={k}
-            >
-              <Badge color="secondary" badgeContent={v.quantumCostAux}>
-                <Button
-                  size="small"
-                  variant="contained"
-                  style={{ margin: '10px', padding: '0px' }}
-                >
-                  {'P' + v.id}
-                </Button>
-              </Badge>
-            </div>
+              top="0%"
+              left={'0%'}
+              text={v.priority === 0 ? 'P' + v.id : '!P' + v.id}
+              priority={v.priority}
+              starvation={v.starvation}
+            />
           ))}
           {this.state.finalizedProcess.length >= 1 ? (
             <h4 className="text-primary">{this.state.queueFinalizedLog}</h4>
@@ -667,7 +697,9 @@ export default class RoundRobin extends Component {
           )}
         </div>
 
-        <h6 className="float-md-right">Round Robin Simulator (RRS).</h6>
+        <div style={{ display: 'flex', flexDirection: 'row-reverse' }}>
+          <h6>Round Robin Simulator (RRS).</h6>
+        </div>
       </div>
     );
   }

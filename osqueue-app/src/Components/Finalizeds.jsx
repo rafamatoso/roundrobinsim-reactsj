@@ -12,7 +12,7 @@ const useStyles = makeStyles(theme => ({
   }
 }));
 
-export default function Attendance(props) {
+export default function Finalizeds(props) {
   const style = useStyles();
 
   return props.priority === 0 ? (
