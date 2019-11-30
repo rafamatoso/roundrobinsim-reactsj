@@ -265,14 +265,15 @@ export default class RoundRobin extends Component {
   _calculateNPQ() {
     let { listProcessInQueue, queueProcess } = this.state;
     listProcessInQueue.push(queueProcess.length);
+    console.log(listProcessInQueue);
     let sumProcessInQueue = 0;
     listProcessInQueue.forEach(element => {
       sumProcessInQueue += element;
     });
     let npq = sumProcessInQueue / listProcessInQueue.length;
     this.setState({
-      npq: npq,
-      listProcessInQueue: listProcessInQueue
+      listProcessInQueue: listProcessInQueue,
+      npq: npq
     });
   }
 
@@ -359,32 +360,18 @@ export default class RoundRobin extends Component {
     });
   };
 
-  _handlerRandomOnChange = e => {
-    if (e.target.value <= 1) {
-      this.setState({ max_random: 1 });
-    } else if (e.target.value > 10) {
-      this.setState({ max_random: 10 });
-    } else {
-      this.setState({ max_random: e.target.value });
-    }
-  };
-
   _handlerInputOnChange = e => {
-    if (e.target.value <= 1) {
-      this.setState({ numberOfAttendances: 1 });
-    } else if (e.target.value > 8) {
-      this.setState({ numberOfAttendances: 8 });
-    } else {
-      this.setState({ numberOfAttendances: e.target.value });
-    }
+    console.log(e.target.value);
+
+    this.setState({ numberOfAttendances: e.target.value });
   };
 
-  _handlerInputquantumMaxOnChange = e => {
-    if (e.target.value <= 1) {
-      this.setState({ quantumMax: 1 });
-    } else {
-      this.setState({ quantumMax: e.target.value });
-    }
+  _handlerInputQuantumMaxOnChange = e => {
+    this.setState({ quantumMax: e.target.value });
+  };
+
+  _handlerRandomOnChange = e => {
+    this.setState({ max_random: e.target.value });
   };
 
   // Componentes montados, executa o escopo
@@ -464,8 +451,21 @@ export default class RoundRobin extends Component {
                   className="form-control"
                   id="numero_atendentes"
                   onChange={this._handlerInputOnChange}
+                  onBlur={e => {
+                    if (e.target.value <= 0) {
+                      this.setState(state => ({
+                        numberOfAttendances: 1
+                      }));
+                    } else if (e.target.value > 8) {
+                      this.setState({ numberOfAttendances: 8 });
+                    } else {
+                      this.setState({
+                        numberOfAttendances: e.target.value
+                      });
+                    }
+                  }}
                   value={this.state.numberOfAttendances}
-                  min="1"
+                  min="0"
                   max="8"
                 />
                 <small id="numero_atendentes" className="form-text text-muted">
@@ -481,7 +481,14 @@ export default class RoundRobin extends Component {
                   type="number"
                   className="form-control"
                   id="time_max"
-                  onChange={this._handlerInputquantumMaxOnChange}
+                  onChange={this._handlerInputQuantumMaxOnChange}
+                  onBlur={e => {
+                    if (e.target.value <= 0) {
+                      this.setState({ quantumMax: 1 });
+                    } else {
+                      this.setState({ quantumMax: e.target.value });
+                    }
+                  }}
                   value={this.state.quantumMax}
                   min="1"
                 />
@@ -499,8 +506,16 @@ export default class RoundRobin extends Component {
                   className="form-control"
                   id="random_max"
                   onChange={this._handlerRandomOnChange}
+                  onBlur={e => {
+                    if (e.target.value <= 0) {
+                      this.setState({ max_random: 1 });
+                    } else if (e.target.value > 10) {
+                      this.setState({ max_random: 10 });
+                    } else {
+                      this.setState({ max_random: e.target.value });
+                    }
+                  }}
                   value={this.state.max_random}
-                  min="1"
                   max="10"
                 />
                 <small id="random_max" className="form-text text-muted">
@@ -605,64 +620,64 @@ export default class RoundRobin extends Component {
             >
               <h5>Métricas:</h5>
               <div style={{ display: 'block' }}>
-                <h7>
+                <span>
                   {'1) Ritmo Médio de Chegada (Lambda): '}
                   {
-                    <text style={{ fontWeight: 'bold' }}>
+                    <span style={{ fontWeight: 'bold' }}>
                       {(this.state.lambda / 5).toFixed(2) + ' processos/seg'}
-                    </text>
+                    </span>
                   }
-                </h7>
+                </span>
                 <div></div>
-                <h7>
+                <span>
                   {'2) Tempo Médio de Atendimento: '}
                   {
-                    <text style={{ fontWeight: 'bold' }}>
+                    <span style={{ fontWeight: 'bold' }}>
                       {this.state.ta.toFixed(2) + ' seg'}
-                    </text>
+                    </span>
                   }
-                </h7>
+                </span>
                 <div></div>
-                <h7>
+                <span>
                   {'3) Tempo Médio de Espera na Fila: '}
                   {
-                    <text style={{ fontWeight: 'bold' }}>
+                    <span style={{ fontWeight: 'bold' }}>
                       {this.state.tq.toFixed(2) + ' seg'}
-                    </text>
+                    </span>
                   }
-                </h7>
+                </span>
                 <div></div>
-                <h7>
+                <span>
                   {'4) Tempo Médio de Permanência no Sistema: '}
                   {
-                    <text style={{ fontWeight: 'bold' }}>
+                    <span style={{ fontWeight: 'bold' }}>
                       {this.state.ts.toFixed(2) + ' seg'}
-                    </text>
+                    </span>
                   }
-                </h7>
+                </span>
                 <div></div>
-                <h7>
+                <span>
                   {'5) Média de Processos na Fila: '}
                   {
-                    <text style={{ fontWeight: 'bold' }}>
+                    <span style={{ fontWeight: 'bold' }}>
                       {this.state.npq.toFixed(0)}
-                    </text>
+                    </span>
                   }
-                </h7>
+                </span>
                 <div></div>
-                <h7>
+                <span>
                   {'6) Média de Clientes no Sistema: '}
                   {
-                    <text style={{ fontWeight: 'bold' }}>
+                    <span style={{ fontWeight: 'bold' }}>
                       {this.state.nps.toFixed(0)}
-                    </text>
+                    </span>
                   }
-                </h7>
+                </span>
                 <div></div>
-                <h7>
+                <span>
                   {'7) Quantidade de Processos Criados: '}
-                  {<text style={{ fontWeight: 'bold' }}>{count}</text>}
-                </h7>
+                  {<span style={{ fontWeight: 'bold' }}>{count}</span>}
+                </span>
               </div>
             </div>
           </div>

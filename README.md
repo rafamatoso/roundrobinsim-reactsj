@@ -42,6 +42,10 @@ Link para a Aplicação: **[Round Robin Simulator](https://analisemo.herokuapp.c
        - @material-ui/icons (v4.5.1)
      - [Bootstrap](https://getbootstrap.com/) (v4.3.1)
 
+   - Outras características:</br>
+
+     - [FreeLogoDesign](https://pt.freelogodesign.org/) - Logo do App
+
 2. Caracterísitcas do Repositório:
 
    - [doc](https://github.com/rafamatoso/osqueue-unifbv/tree/master/doc) - Base de dados com materiais de apoio ao projeto (Artigos, livros, resumos, rascunhos, imagens e etc).</br>
@@ -49,4 +53,4 @@ Link para a Aplicação: **[Round Robin Simulator](https://analisemo.herokuapp.c
 
 ---
 
-##### Recife, 27 de Novembro de 2019
+##### Recife, 30 de Novembro de 2019
